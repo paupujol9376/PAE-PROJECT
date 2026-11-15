@@ -9,7 +9,7 @@ const here = path.dirname(url.fileURLToPath(import.meta.url));
 const src = path.resolve(here, '../../data');
 const dst = path.resolve(here, '../public/data');
 const files = ['roads.pmtiles', 'base.pmtiles', 'schools.json', 'land.json', 'admin.json'];
-const optional = ['connectivity.json']; // pipeline/estimate_connectivity.py or real data
+const optional = ['connectivity.json', 'road-stats.json']; // pipeline/estimate_connectivity.py or real data
 
 fs.mkdirSync(dst, { recursive: true });
 const manifest = { generatedAt: new Date().toISOString(), files: {} };

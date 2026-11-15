@@ -4,7 +4,7 @@ import maplibregl, { type GeoJSONSource, type Map as MLMap, type FilterSpecifica
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { buildStyle, ROAD_CLASSES, ROAD_GROUPS, SRI_LANKA_BOUNDS, SRI_LANKA_FIT, type StyleOptions } from './style';
 import { protocol, tileKeys } from '../offline/offline';
-import { dataset, flyRequest, isMobile, lang, levelFilter, panelOpen, roadGroups, showBoundaries, showLabels, theme } from '../state';
+import { dataset, flyRequest, isMobile, lang, levelFilter, mapZoom, panelOpen, roadGroups, roadHighlight, showBoundaries, showLabels, theme } from '../state';
 import { navigate, route } from '../router';
 import { toGeoJSON } from '../data/schools';
 import { areaName, t, type Key } from '../i18n';
@@ -41,6 +41,9 @@ export function MapView() {
     });
     map.touchZoomRotate.disableRotation();
     const cleanups: (() => void)[] = [];
+    // isStyleLoaded() is false while tiles load (MapLibre 4), which skipped updates; track the style ourselves.
+    let styleReady = false;
+    map.on('style.load', () => { styleReady = true; });
     (window as unknown as { __map: MLMap }).__map = map; // for e2e tests
 
     // --- helpers that (re)apply runtime state to the current style ---
@@ -65,26 +68,45 @@ export function MapView() {
     const stopStyle = effect(() => {
       const o = opts();
       if (first) { first = false; return; }
+      styleReady = false;
       map.setStyle(buildStyle(o), { diff: false });
       map.once('style.load', applyAll);
     });
     // visibility toggles without a style rebuild
-    const stopVis = effect(() => {
-      const groups = roadGroups.value, b = showBoundaries.value, l = showLabels.value;
-      if (!map.isStyleLoaded()) return;
+    // Legend highlight: selected classes keep their style (and are shown even if their group
+    // is off); every other road fades. Original opacities are cached per loaded style.
+    const origOpacity = new Map<string, unknown>();
+    map.on('style.load', () => origOpacity.clear());
+    const applyRoads = () => {
+      const groups = roadGroups.value, sel = roadHighlight.value;
       const set = (id: string, on: boolean) => map.getLayer(id) && map.setLayoutProperty(id, 'visibility', on ? 'visible' : 'none');
+      const fade = (id: string, on: boolean) => {
+        if (!map.getLayer(id)) return;
+        if (!origOpacity.has(id)) origOpacity.set(id, map.getPaintProperty(id, 'line-opacity'));
+        map.setPaintProperty(id, 'line-opacity', on ? (origOpacity.get(id) as number) : 0.07);
+      };
       for (const r of ROAD_CLASSES) {
-        const on = groups.has(Object.keys(ROAD_GROUPS).find((g) => ROAD_GROUPS[g].includes(r.cls))!);
-        set(`roads-${r.cls}`, on);
-        set(`roads-glow-${r.cls}`, on);
+        const inSel = !!sel && (sel.includes(r.cls) || (r.also ?? []).some((a) => sel.includes(a)));
+        const vis = groups.has(Object.keys(ROAD_GROUPS).find((g) => ROAD_GROUPS[g].includes(r.cls))!) || inSel;
+        for (const id of [`roads-${r.cls}`, `roads-glow-${r.cls}`]) { set(id, vis); fade(id, !sel || inSel); }
       }
-      set('roads-core-highlight', groups.has('major'));
+      const coreOn = !sel || sel.some((c) => ['motorway', 'trunk', 'primary'].includes(c));
+      set('roads-core-highlight', groups.has('major') || (!!sel && coreOn));
+      fade('roads-core-highlight', coreOn);
+    };
+    map.on('style.load', () => applyRoads());
+    const stopVis = effect(() => {
+      roadGroups.value; roadHighlight.value;
+      const b = showBoundaries.value, l = showLabels.value;
+      if (!styleReady) return;
+      const set = (id: string, on: boolean) => map.getLayer(id) && map.setLayoutProperty(id, 'visibility', on ? 'visible' : 'none');
+      applyRoads();
       set('admin-district', b); set('admin-province', b);
       set('roads-label', l); set('place-label', l);
     });
-    const stopData = effect(() => { dataset.value; if (map.isStyleLoaded()) setSchools(); });
-    const stopFilter = effect(() => { levelFilter.value; if (map.isStyleLoaded()) applyFilter(); });
-    const stopSel = effect(() => { route.value; if (map.isStyleLoaded()) applySelection(); });
+    const stopData = effect(() => { dataset.value; if (styleReady) setSchools(); });
+    const stopFilter = effect(() => { levelFilter.value; if (styleReady) applyFilter(); });
+    const stopSel = effect(() => { route.value; if (styleReady) applySelection(); });
     // keep the island visible next to the docked panel
     const stopPad = effect(() => {
       map.setPadding({ left: !isMobile.value && panelOpen.value ? PANEL_W : 0, top: 0, right: 0, bottom: isMobile.value ? Math.round(innerHeight * 0.4) : 0 });
@@ -125,6 +147,8 @@ export function MapView() {
     });
     map.on('mouseenter', 'schools', () => (map.getCanvas().style.cursor = 'pointer'));
     map.on('mouseleave', 'schools', () => (map.getCanvas().style.cursor = ''));
+    map.on('zoomend', () => (mapZoom.value = map.getZoom()));
+    map.on('load', () => (mapZoom.value = map.getZoom()));
     map.on('idle', () => document.body.setAttribute('data-map-idle', '1'));
     map.on('movestart', () => document.body.removeAttribute('data-map-idle'));
 

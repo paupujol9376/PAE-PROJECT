@@ -136,6 +136,16 @@ h1, h2, h3, h4 { margin: 0; }
 .li { display: flex; align-items: center; gap: var(--space-2); }
 .swatch { width: 28px; height: 4px; border-radius: 2px; display: inline-block; flex: none; }
 :root:not([data-theme='a11y']) .swatch { box-shadow: 0 0 6px currentColor; }
+.legend { max-height: calc(100dvh - 120px); overflow: auto; }
+.road-rows { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
+.road-row { width: 100%; background: none; border: 1px solid transparent; border-radius: var(--radius-sm); padding: var(--space-1) var(--space-2); margin: 0 calc(-1 * var(--space-2)); cursor: pointer; text-align: left; color: var(--text); }
+.road-row:hover { background: var(--surface-raised); }
+.road-row[aria-pressed='true'] { border-color: var(--accent); background: var(--surface-raised); }
+.road-name { flex: 1; }
+.road-km { color: var(--text-muted); font-size: var(--font-xs-size); white-space: nowrap; }
+.road-detail { font-size: var(--font-xs-size); line-height: var(--font-xs-line); padding: var(--space-1) 0 var(--space-2) 36px; display: grid; gap: 2px; }
+.road-detail p { margin: 0; }
+.legend-hint { margin: 0 0 var(--space-1); }
 
 /* ---- dialogs ---- */
 dialog.dlg { border: 1px solid var(--border); border-radius: var(--radius-lg); background: var(--surface); color: var(--text); padding: 0;

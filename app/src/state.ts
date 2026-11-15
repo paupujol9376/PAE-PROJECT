@@ -59,6 +59,11 @@ export const theme = computed<'dark' | 'light' | 'a11y'>(() =>
 export const dataset = signal<Dataset | null>(null);
 export const dataError = signal<string | null>(null);
 export const levelFilter = signal<Set<Level>>(new Set());
+/** Legend selection: road classes to highlight on the map (null = none). */
+export const roadHighlight = signal<string[] | null>(null);
+export const mapZoom = signal(7);
+export interface RoadStats { generatedAt: string; classes: Record<string, { ways: number; km: number; highway: Record<string, number>; refPrefixes: Record<string, number> }> }
+export const roadStats = signal<RoadStats | null>(null);
 
 // ---- UI ----
 export type DialogName = 'menu' | 'layers' | 'share' | 'about' | 'offline' | 'a11y' | null;

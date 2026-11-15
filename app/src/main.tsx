@@ -8,7 +8,7 @@ import '@fontsource/noto-sans-tamil/tamil-400.css';
 import '@fontsource/noto-sans-tamil/tamil-600.css';
 import './styles/app.css';
 import { App } from './app';
-import { dataError, dataset, flyTo } from './state';
+import { dataError, dataset, flyTo, roadStats } from './state';
 import { route } from './router';
 import { loadSchools } from './data/schools';
 import { loadManifest, resolveTileKeys } from './offline/offline';
@@ -34,6 +34,12 @@ loadSchools(import.meta.env.BASE_URL)
   });
 
 loadManifest().then(resolveTileKeys);
+
+// Measured road statistics for the legend (pipeline/road_stats.py); optional.
+fetch(`${import.meta.env.BASE_URL}data/road-stats.json`)
+  .then((r) => (r.ok ? r.json() : null))
+  .then((j) => { if (j?.classes) roadStats.value = j; })
+  .catch(() => undefined);
 
 if (import.meta.env.PROD) {
   import('virtual:pwa-register').then(({ registerSW }) => registerSW({ immediate: true }));
