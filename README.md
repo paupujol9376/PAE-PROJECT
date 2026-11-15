@@ -28,7 +28,7 @@ PAE-PROJECT helps school staff, district officers and emergency responders decid
 
 - Real-time hazard data (rainfall, river levels, road status)
 - School locations and availability from the Giga map
-- An offline road map of Sri Lanka with a Strava-like interface
+- An offline road map of Sri Lanka with a Strava-like interface (the whole app is scoped to Sri Lanka only: no global view, no other countries)
 - Quantum (or quantum-inspired) route optimization, with a classical fallback
 - Predefined templates that turn a trigger into a set of actions
 - Alerts translated to the local language of each area

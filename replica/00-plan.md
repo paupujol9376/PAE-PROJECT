@@ -24,3 +24,4 @@ Merge to `main` only when the gate passes. Push after each phase.
 - App type: PWA (Vite + TypeScript, MapLibre GL JS, PMTiles protocol, service worker).
 - Tile pipeline: Planetiler (Java 21 available; no Docker/WSL on the dev machine).
 - Giga API keys live only in `.env` (gitignored); `.env.example` documents the variables.
+- Scope: **Sri Lanka only** (2026-11-15). Map, schools and roads are limited to Sri Lanka; no global view or other countries.

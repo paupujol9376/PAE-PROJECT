@@ -17,8 +17,8 @@ Data source shown per view,country,must,yes,no,S09 S10
 School detail panel (name / coords / status / id / source),school,must,yes,no,S10
 Map pin + popup card when a school is selected,school,must,yes,no,S10
 Click school dot on map opens detail,school,must,yes,no,F03
-Breadcrumb navigation (home > country > school),navigation,should,yes,no,S09 S10
-Deep links that restore view (country / school / layer / language),navigation,must,yes,no,URL state
+Breadcrumb navigation (Sri Lanka > province > school),navigation,should,yes,no,S09 S10; root is Sri Lanka not the world
+Deep links that restore view (school / layer / language),navigation,must,yes,no,URL state; country fixed to LK
 Layer picker (status / speed / coverage / fibre distance),layers,should,yes,no,S12; only layers with data for LK
 Filters drawer (education level etc.) with Clear all / Apply,filters,should,yes,no,S11
 Facility-type chips (all / schools / health),filters,could,yes,no,health data absent for LK
@@ -30,11 +30,12 @@ Language selector,settings,must,yes,no,S02; EN/SI/TA in clone
 Share dialog with copy link,sharing,should,yes,no,S05
 Social share buttons,sharing,could,yes,no,S05
 About-our-data notice,info,should,yes,no,S13; own wording
-Global overview with world KPIs,global,could,yes,no,S01; PAE is Sri Lanka only
-Country list browser,global,could,yes,no,S07; only LK needed
+Global overview with world KPIs,global,skip,yes,skip,out of scope: PAE is Sri Lanka only (decision 2026-11-15)
+Country list browser,global,skip,yes,skip,out of scope: Sri Lanka is the only country
 Health facilities layer and detail,health,could,yes,no,no LK data seen
 Mobile bottom-sheet panel with resize handle,mobile,must,yes,no,S15
 Collapsible desktop side panel,layout,should,yes,no,edge tab
+Map locked to Sri Lanka (opens on the island / max bounds / no other countries),map,must,no,no,PAE scope decision 2026-11-15
 All Sri Lanka roads layer (Strava-like glow by class),pae-roads,must,no,no,PAE addition; data/roads.pmtiles
 Toggle road class groups,pae-roads,should,no,no,PAE addition
 Offline-first (app shell / roads / school snapshot cached; data age shown),pae-offline,must,no,no,PAE addition

@@ -1,6 +1,6 @@
 # Recon map: Giga Maps (web, desktop + mobile)
 
-Scope: the public school-connectivity map, focused on the country → school drill-down for **Sri Lanka**, plus the PAE additions (all Sri Lanka roads in a Strava-like style, offline-first, EN/SI/TA).
+Scope: **Sri Lanka only** (decision 2026-11-15: map, schools and roads are limited to Sri Lanka; no global view, no other countries). The public school-connectivity map, country → school drill-down, plus the PAE additions (all Sri Lanka roads in a Strava-like style, offline-first, EN/SI/TA).
 For: PAE project, a PWA for Sri Lankan school staff and emergency responders.
 Date: 2026-11-15
 Method: clean-room. Public pages only, no login. Pages were rendered with Playwright driving the installed Microsoft Edge, one page load per state, at human pace. No JS bundles read, no network calls logged, no copy taken. Screens are described in our own words.
@@ -152,11 +152,11 @@ Sri Lanka figures seen on 2026-11-15 (for sanity checks only, not shipped): ~10.
 - **Roads layer**: all Sri Lanka `highway=*` lines from `data/roads.pmtiles` (phase 1B), Strava-like glow on dark, colour and width per class, toggle per class group.
 - **Offline-first**: app shell, roads, last school snapshot and translations cached on the device; every data point shows its age.
 - **i18n EN / SI / TA** (the original offers several languages but not Sinhala/Tamil UI).
-- Sri Lanka as the default and only country view (global view simplified).
+- **Sri Lanka only**: the app opens on the island, the map is bounded to Sri Lanka, and there is no global view or country list (S01 and S07 are reference only).
 
 ## Feature matrix
 
-See `features.csv`. Must: 23, should: 11, could: 6, skip: 4.
+See `features.csv`. Must: 24, should: 11, could: 4, skip: 6.
 
 ## Out of scope (cannot or should not be cloned)
 
@@ -164,6 +164,7 @@ See `features.csv`. Must: 23, should: 11, could: 6, skip: 4.
 - The global dataset and realtime measurement network (Giga Meter / SNMP feeds): we consume the public API, we do not rebuild the network.
 - Mapbox basemap and its styles (we use our own PMTiles + open basemap).
 - Satellite imagery (licensed).
+- The global view (S01) and the country list (S07): PAE is Sri Lanka only.
 
 ## Size
 
