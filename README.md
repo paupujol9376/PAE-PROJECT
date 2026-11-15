@@ -68,11 +68,12 @@ PAE-PROJECT helps school staff, district officers and emergency responders decid
 | Decision | Choice | Why |
 |---|---|---|
 | App type | **PWA** (Vite + TypeScript) | Installable on any Android/iOS phone without a store, cached by a service worker so it works offline, and a single codebase. |
+| UI | **Preact + signals** | 4 KB components for panels, sheets and dialogs; light enough for low-end Android. |
 | Map engine | **MapLibre GL JS** | Open source (BSD), vector-tile rendering on the GPU, full control over the style (needed for the Strava-like look). |
 | Tile format | **PMTiles** (single file) | One static file served over HTTP range requests or read from device storage, so no tile server is needed. That fits offline-first. |
 | Tile pipeline | **Planetiler** (Java 21) | Fast, runs natively on Windows without Docker/WSL, and outputs PMTiles directly. |
 | Road data | **OpenStreetMap** via Geofabrik | Most complete open road network for Sri Lanka, under the ODbL licence. |
-| School data | **Giga public API** | Official school locations and connectivity. Keys are kept in `.env` only. |
+| School data | **Giga "School location" export** (public API, CSV from the portal) | Official school locations for Sri Lanka. Built into a static `schools.json`, so the app never calls the API and no key reaches the browser. Connectivity/speed APIs are private and not available yet. |
 | Giga replica | **Clean-room** | We reproduce functions and UX only. No Giga code, logos or copy, and no Strava data or tiles. |
 
 The full rationale is written in `replica/02-architecture/` (phase 2).
@@ -146,7 +147,7 @@ The schema is `pipeline/roads.yml`; the last gate results are in
 | 0: Setup (gitignore, README, plan) | ✅ Done |
 | 1A: Recon of Giga map | ✅ Done (15 screens, 7 flows, 44 features; see `replica/01-recon/`) |
 | 1B: OSM → PMTiles roads pipeline | ✅ Done (gate passed, see `replica/01-data/`) |
-| 2: Architecture | ⏳ Pending |
+| 2: Architecture | ✅ Done (see `replica/02-architecture/architecture.md`) |
 | 3: Design system + map style | ⏳ Pending |
 | 4: Build | ⏳ Pending |
 | 5: Test, diff, QA | ⏳ Pending |
@@ -155,7 +156,9 @@ The schema is `pipeline/roads.yml`; the last gate results are in
 
 - Roads tiles: 6 of 340,300 source highway ways (0.0018 %) are not in the z14 tiles. Each is a two-node way under ~0.6 m long that collapses to a single point at the z14 tile grid (4096 units, ~0.6 m). Within the 1 % gate; not fixable in the schema.
 - Roads tiles: the largest tile is z12 over central Colombo (148 KB gzipped, 286 KB raw), because every residential and service road starts at z12. Fine for MapLibre, but watch it on 2G/3G.
-- The Giga API contract and rate limits have not been verified yet (phase 2).
+- Giga connectivity status and speeds come from private APIs that this project has no access to. Schools are shown with status "unknown"; the UI is ready for a data provider.
+- Only page 1 of 2 of the Sri Lanka schools export is in `data/` (10,000 of ~10,100 schools). Download page 2 from the Giga portal into `data/`; the build merges every `School_report_*.csv`.
+- Sinhala/Tamil map labels: MapLibre cannot shape these scripts, so map labels use English names. All other UI text is fully translated.
 - Recon screenshots of Giga are kept locally in `replica/01-recon/screens/` and are gitignored (third-party content, reference only). Regenerate them by re-running the recon (phase 1A).
 
 ## Data sources and licences
