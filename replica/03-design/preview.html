@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PAE design preview</title>
+<!-- Design reference only (phase 3). Serve the repo root with a Range-capable server:
+     node replica/03-design/serve.mjs  ->  http://localhost:8080/replica/03-design/preview.html?theme=dark -->
+<link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css">
+<link rel="stylesheet" href="tokens.css">
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; background: var(--bg); color: var(--text); font-family: var(--font-sans); font-size: var(--font-sm-size); line-height: var(--font-sm-line); }
+  #map { position: fixed; inset: 0; }
+  .panel { position: absolute; top: var(--panel-gutter); left: var(--panel-gutter); bottom: var(--panel-gutter); width: var(--panel-width);
+    background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); box-shadow: var(--shadow-pop);
+    display: flex; flex-direction: column; gap: var(--space-4); padding: var(--space-4); overflow: auto; z-index: 2; }
+  .row { display: flex; align-items: center; gap: var(--space-2); }
+  .brand { font-size: var(--font-lg-size); font-weight: 600; }
+  .icon-btn { width: var(--control-size); height: var(--control-size); display: grid; place-items: center; border-radius: var(--radius-md);
+    background: transparent; color: var(--text); border: 1px solid transparent; cursor: pointer; }
+  .icon-btn:hover { background: var(--surface-raised); }
+  :focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+  .search { display: flex; align-items: center; gap: var(--space-2); height: 44px; padding: 0 var(--space-3); border: 1px solid var(--border-input);
+    border-radius: var(--radius-md); background: var(--bg); color: var(--text-muted); }
+  .search input { flex: 1; background: transparent; border: 0; color: var(--text); font: inherit; outline: none; }
+  .crumb { color: var(--text-muted); font-size: var(--font-xs-size); }
+  h2 { margin: 0; font-size: var(--font-xl-size); line-height: var(--font-xl-line); font-weight: 600; }
+  .card { background: var(--surface-raised); border: 1px solid var(--border); border-radius: var(--radius-md); padding: var(--space-4); display: grid; gap: var(--space-3); }
+  .card h3 { margin: 0; font-size: var(--font-base-size); font-weight: 600; }
+  .kpis { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--space-2); }
+  .kpi b { display: block; font-size: var(--font-lg-size); line-height: var(--font-lg-line); }
+  .kpi span { color: var(--text-muted); font-size: var(--font-xs-size); }
+  .metric { font-size: var(--font-metric-size); line-height: var(--font-metric-line); font-weight: 600; color: var(--speed-unknown); }
+  .muted { color: var(--text-muted); }
+  .btn { height: 40px; padding: 0 var(--space-4); border-radius: var(--radius-md); font: inherit; font-weight: 600; cursor: pointer; border: 1px solid var(--border-input); background: transparent; color: var(--text); }
+  .btn.primary { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
+  .chips { display: flex; gap: var(--space-2); flex-wrap: wrap; }
+  .chip { height: 32px; padding: 0 var(--space-3); border-radius: var(--radius-pill); border: 1px solid var(--border); background: var(--surface); color: var(--text); font: inherit; }
+  .chip[aria-pressed="true"] { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
+  .legend { position: absolute; right: var(--panel-gutter); bottom: 32px; z-index: 2; width: 260px; background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius-md); padding: var(--space-3) var(--space-4); display: grid; gap: var(--space-2); box-shadow: var(--shadow-card); }
+  .legend h4 { margin: 0; font-size: var(--font-xs-size); color: var(--text-muted); text-transform: uppercase; letter-spacing: .04em; }
+  .li { display: flex; align-items: center; gap: var(--space-2); }
+  .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+  .swatch { width: 28px; height: 4px; border-radius: 2px; display: inline-block; box-shadow: 0 0 6px currentColor; }
+  .switch { width: 36px; height: 20px; border-radius: 999px; background: var(--border-input); position: relative; border: 0; }
+  .switch::after { content: ""; position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; border-radius: 50%; background: var(--surface); }
+  .switch[aria-checked="true"] { background: var(--accent); }
+  .switch[aria-checked="true"]::after { left: 18px; }
+  .notice { font-size: var(--font-xs-size); color: var(--text-muted); border-left: 3px solid var(--warning); padding-left: var(--space-2); }
+  .controls { position: absolute; right: var(--panel-gutter); top: var(--panel-gutter); z-index: 2; display: grid; gap: var(--space-1); }
+  .controls .icon-btn { background: var(--surface); border-color: var(--border); }
+  @media (max-width: 640px) {
+    .panel { top: auto; left: 0; right: 0; bottom: 0; width: auto; height: var(--sheet-half); border-radius: var(--radius-lg) var(--radius-lg) 0 0; }
+    .legend { display: none; }
+  }
+</style>
+</head>
+<body>
+<div id="map" role="region" aria-label="Map of Sri Lanka"></div>
+
+<aside class="panel" aria-label="Sri Lanka schools">
+  <div class="row"><button class="icon-btn" aria-label="Open menu">☰</button><span class="brand">PAE Map</span></div>
+  <label class="search"><span aria-hidden="true">⌕</span><input placeholder="Search a school or district" aria-label="Search a school or district"></label>
+  <div class="crumb">Sri Lanka</div>
+  <h2>Schools in Sri Lanka</h2>
+  <div class="card">
+    <h3>Schools</h3>
+    <div class="kpis">
+      <div class="kpi"><b id="k-total">–</b><span>on the map</span></div>
+      <div class="kpi"><b>–</b><span>connected</span></div>
+      <div class="kpi"><b>–</b><span>with speed data</span></div>
+    </div>
+  </div>
+  <div class="card">
+    <h3>Average download speed</h3>
+    <div class="metric">No data yet</div>
+    <p class="notice">Connectivity data is not available for this dataset. Schools are shown in a neutral colour.</p>
+  </div>
+  <div class="card">
+    <h3>Roads</h3>
+    <div class="chips" role="group" aria-label="Road groups">
+      <button class="chip" aria-pressed="true">Main</button><button class="chip" aria-pressed="true">Local</button>
+      <button class="chip" aria-pressed="false">Tracks</button><button class="chip" aria-pressed="false">Paths</button>
+    </div>
+    <div class="row"><button class="switch" role="switch" aria-checked="false" aria-label="Accessibility mode"></button><span>Accessibility mode</span></div>
+  </div>
+  <div class="row"><button class="btn primary">Download for offline</button><button class="btn">Share</button></div>
+  <p class="muted" style="font-size:var(--font-xs-size)">Data: schools from Giga (export 15 Nov 2026) · roads © OpenStreetMap contributors</p>
+</aside>
+
+<div class="controls" aria-label="Map controls">
+  <button class="icon-btn" aria-label="Zoom in" onclick="map.zoomIn()">+</button>
+  <button class="icon-btn" aria-label="Zoom out" onclick="map.zoomOut()">−</button>
+</div>
+
+<div class="legend" aria-label="Legend">
+  <h4>School status</h4>
+  <div class="li"><span class="dot" style="background:var(--status-connected)"></span>Connected</div>
+  <div class="li"><span class="dot" style="background:var(--status-not-connected)"></span>Not connected</div>
+  <div class="li"><span class="dot" style="background:var(--status-unknown)"></span>Unknown</div>
+  <h4>Roads</h4>
+  <div class="li"><span class="swatch" style="background:var(--road-motorway);color:var(--road-motorway)"></span>Expressway</div>
+  <div class="li"><span class="swatch" style="background:var(--road-trunk);color:var(--road-trunk)"></span>National (A)</div>
+  <div class="li"><span class="swatch" style="background:var(--road-primary);color:var(--road-primary)"></span>Primary</div>
+  <div class="li"><span class="swatch" style="background:var(--road-secondary);color:var(--road-secondary)"></span>Secondary (B)</div>
+  <div class="li"><span class="swatch" style="background:var(--road-tertiary);color:var(--road-tertiary)"></span>Tertiary</div>
+  <div class="li"><span class="swatch" style="background:var(--road-residential);color:var(--road-residential)"></span>Local</div>
+  <div class="li"><span class="swatch" style="background:var(--road-track);color:var(--road-track)"></span>Track</div>
+  <div class="li"><span class="swatch" style="background:var(--road-path);color:var(--road-path)"></span>Path</div>
+</div>
+
+<script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+<script src="https://unpkg.com/pmtiles@3.2.1/dist/pmtiles.js"></script>
+<script type="module">
+  import { buildStyle, SRI_LANKA_BOUNDS } from './map-style.js';
+  const q = new URLSearchParams(location.search);
+  const theme = q.get('theme') || 'dark';
+  document.documentElement.dataset.theme = theme;
+  if (q.get('panel') === '0') document.querySelector('.panel').style.display = 'none';
+  const tokens = await (await fetch('tokens.json')).json();
+  const protocol = new pmtiles.Protocol();
+  maplibregl.addProtocol('pmtiles', protocol.tile);
+  const schools = await (await fetch('/data/schools-preview.geojson')).json();
+  document.getElementById('k-total').textContent = schools.features.length.toLocaleString('en');
+  const [lon, lat] = (q.get('c') || '80.75,7.85').split(',').map(Number);
+  window.map = new maplibregl.Map({
+    container: 'map', center: [lon, lat], zoom: Number(q.get('z') || 7),
+    maxBounds: SRI_LANKA_BOUNDS, minZoom: 6, attributionControl: { compact: false },
+    style: buildStyle({ tokens, theme, roadsUrl: location.origin + '/data/roads.pmtiles', schoolsData: schools }),
+  });
+  map.on('idle', () => { document.body.dataset.ready = '1'; });
+</script>
+</body>
+</html>
