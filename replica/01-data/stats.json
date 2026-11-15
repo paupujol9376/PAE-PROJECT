@@ -1,0 +1,194 @@
+{
+  "gate1_metadata": {
+    "pass": true,
+    "min_zoom": 5,
+    "max_zoom": 14,
+    "vector_layers": [
+      "roads"
+    ],
+    "attribution": "<a href=\"https://www.openstreetmap.org/copyright\" target=\"_blank\">&copy; OpenStreetMap contributors</a>"
+  },
+  "gate2_classes": {
+    "pass": true,
+    "missing": [],
+    "tile_z14_unique_ways_per_class": {
+      "residential": 184449,
+      "track": 42754,
+      "unclassified": 32204,
+      "service": 26707,
+      "path": 25379,
+      "tertiary": 7473,
+      "primary": 7049,
+      "footway": 6859,
+      "trunk": 3720,
+      "secondary": 1725,
+      "motorway": 894,
+      "steps": 752,
+      "cycleway": 164,
+      "construction": 133,
+      "other": 32
+    },
+    "source_ways_per_class": {
+      "residential": 184454,
+      "track": 42754,
+      "unclassified": 32205,
+      "service": 26707,
+      "path": 25379,
+      "tertiary": 7473,
+      "primary": 7049,
+      "footway": 6859,
+      "trunk": 3720,
+      "secondary": 1725,
+      "motorway": 894,
+      "steps": 752,
+      "cycleway": 164,
+      "construction": 133,
+      "other": 32
+    }
+  },
+  "gate3_completeness": {
+    "pass": true,
+    "source_ways": 340300,
+    "tile_z14_unique_ids": 340294,
+    "missing_in_tiles": 6,
+    "extra_in_tiles": 0,
+    "count_difference_pct": 0.0018,
+    "missing_pct": 0.0018,
+    "z14_features_without_id": 0,
+    "z14_features_non_way_id": 0,
+    "feature_id_encoding": "osm_way_id * 10 + 2 (Planetiler convention)",
+    "sample_missing_ids": [
+      926265892,
+      1005000815,
+      1023961667,
+      1244120841,
+      1494978777,
+      1497035216
+    ],
+    "sample_extra_ids": [],
+    "source_skipped": {
+      "area=yes": 27
+    }
+  },
+  "gate4_sizes": {
+    "pbf_bytes": 144638707,
+    "pmtiles_bytes": 37148344,
+    "tile_count": 14584,
+    "largest_tile": {
+      "tile": "12/2957/1969",
+      "compressed_bytes": 147869
+    },
+    "per_zoom": {
+      "5": {
+        "tiles": 1,
+        "max_bytes": 18261,
+        "max_tile": "5/23/15",
+        "max_raw_bytes": 36695,
+        "total_bytes": 18261
+      },
+      "6": {
+        "tiles": 1,
+        "max_bytes": 38389,
+        "max_tile": "6/46/30",
+        "max_raw_bytes": 77838,
+        "total_bytes": 38389
+      },
+      "7": {
+        "tiles": 3,
+        "max_bytes": 51441,
+        "max_tile": "7/92/61",
+        "max_raw_bytes": 101878,
+        "total_bytes": 63763
+      },
+      "8": {
+        "tiles": 10,
+        "max_bytes": 36497,
+        "max_tile": "8/185/123",
+        "max_raw_bytes": 67112,
+        "total_bytes": 124450
+      },
+      "9": {
+        "tiles": 23,
+        "max_bytes": 24918,
+        "max_tile": "9/370/245",
+        "max_raw_bytes": 47704,
+        "total_bytes": 176228
+      },
+      "10": {
+        "tiles": 67,
+        "max_bytes": 48162,
+        "max_tile": "10/739/492",
+        "max_raw_bytes": 90424,
+        "total_bytes": 442269
+      },
+      "11": {
+        "tiles": 223,
+        "max_bytes": 45200,
+        "max_tile": "11/1478/984",
+        "max_raw_bytes": 85616,
+        "total_bytes": 1361888
+      },
+      "12": {
+        "tiles": 805,
+        "max_bytes": 147869,
+        "max_tile": "12/2957/1969",
+        "max_raw_bytes": 285735,
+        "total_bytes": 7172013
+      },
+      "13": {
+        "tiles": 2939,
+        "max_bytes": 66669,
+        "max_tile": "13/5913/3938",
+        "max_raw_bytes": 126041,
+        "total_bytes": 10752056
+      },
+      "14": {
+        "tiles": 10512,
+        "max_bytes": 31618,
+        "max_tile": "14/11826/7876",
+        "max_raw_bytes": 55533,
+        "total_bytes": 16953332
+      }
+    }
+  },
+  "timing_s": {
+    "source_scan": 9.0,
+    "tile_scan": 5.7
+  },
+  "pmtiles_metadata": {
+    "attribution": "<a href=\"https://www.openstreetmap.org/copyright\" target=\"_blank\">&copy; OpenStreetMap contributors</a>",
+    "description": "All OpenStreetMap highway=* lines of Sri Lanka, normalised for a Strava-like MapLibre style.",
+    "name": "PAE Sri Lanka roads",
+    "planetiler:buildtime": "2026-03-28T14:35:36.815Z",
+    "planetiler:githash": "0e5588c4a6e8c29a270a33afe8df62027d889604",
+    "planetiler:osm:osmosisreplicationseq": "4684",
+    "planetiler:osm:osmosisreplicationtime": "2026-11-14T21:20:41Z",
+    "planetiler:osm:osmosisreplicationurl": "https://download.geofabrik.de/asia/sri-lanka-updates",
+    "planetiler:version": "0.10.2",
+    "type": "baselayer",
+    "version": "1.0.0"
+  },
+  "vector_layers": [
+    {
+      "id": "roads",
+      "fields": {
+        "bridge": "Boolean",
+        "class": "String",
+        "highway": "String",
+        "layer": "Number",
+        "link": "Boolean",
+        "name": "String",
+        "name:en": "String",
+        "name:si": "String",
+        "name:ta": "String",
+        "oneway": "Number",
+        "ref": "String",
+        "surface": "String",
+        "tunnel": "Boolean"
+      },
+      "minzoom": 5,
+      "maxzoom": 14
+    }
+  ],
+  "all_pass": true
+}
