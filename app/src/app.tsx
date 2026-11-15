@@ -1,14 +1,22 @@
 import { useEffect } from 'preact/hooks';
-import { ChevronLeft, ChevronRight, Menu } from 'lucide-preact';
+import type { ComponentChildren } from 'preact';
+import { BellRing, ChevronLeft, ChevronRight, LogOut, Menu } from 'lucide-preact';
 import { MapView } from './map/MapView';
 import { Breadcrumb, PanelContent } from './components/PanelViews';
 import { SearchBox } from './components/SearchBox';
 import { Legend, MapControls } from './components/MapChrome';
 import { A11yDialog, AboutDialog, LayersDialog, MenuDialog, OfflineDialog, ShareDialog } from './components/Dialogs';
+import { AlertCard } from './components/Alerts';
 import { dataset, dialog, forceMap, isMobile, lang, online, panelOpen, sheetSnap, slowNetwork, theme, toast, type Snap } from './state';
 import { tileKeys } from './offline/offline';
-import { route } from './router';
+import { navigate, route } from './router';
 import { t } from './i18n';
+import { currentUser, logout, session } from './auth/session';
+import { redirectFor } from './auth/guard';
+import { LoginView, LangSelect } from './views/LoginView';
+import { KidsView } from './views/KidsView';
+import { inbox, startAlerts, stopAlerts } from './alerts/store';
+import { StatusDot } from './components/ui';
 
 function Brand() {
   return <span class="brand">PAE <b>Map</b></span>;
@@ -18,17 +26,26 @@ function MenuButton() {
   return <button class="icon-btn" aria-label={t('menu.open')} aria-haspopup="dialog" onClick={() => (dialog.value = 'menu')}><Menu size={20} /></button>;
 }
 
-function SidePanel() {
+function LogoutButton() {
+  return <button class="icon-btn" aria-label={t('session.logout')} title={t('session.logout')} onClick={logout}><LogOut size={20} /></button>;
+}
+
+/** Docked side panel on desktop, top bar + bottom sheet on mobile. */
+function Shell(props: { head: ComponentChildren; topbar: ComponentChildren; body: ComponentChildren; label: string }) {
+  if (isMobile.value) {
+    return (
+      <>
+        <header class="topbar">{props.topbar}</header>
+        <BottomSheet label={props.label}>{props.body}</BottomSheet>
+      </>
+    );
+  }
   const open = panelOpen.value;
   return (
     <>
-      <aside class={`panel${open ? '' : ' closed'}`} aria-label={t('overview.title')} aria-hidden={!open} inert={!open}>
-        <div class="panel-head">
-          <div class="brand-row"><MenuButton /><Brand /></div>
-          <SearchBox />
-          <Breadcrumb />
-        </div>
-        <div class="panel-body"><PanelContent /></div>
+      <aside class={`panel${open ? '' : ' closed'}`} aria-label={props.label} aria-hidden={!open} inert={!open}>
+        <div class="panel-head">{props.head}</div>
+        <div class="panel-body">{props.body}</div>
       </aside>
       <button class={`panel-tab${open ? '' : ' closed'}`} aria-expanded={open} aria-label={open ? t('panel.hide') : t('panel.show')}
         onClick={() => (panelOpen.value = !open)}>{open ? <ChevronLeft size={16} /> : <ChevronRight size={16} />}</button>
@@ -37,10 +54,9 @@ function SidePanel() {
 }
 
 const SNAPS: Snap[] = ['peek', 'half', 'full'];
-function BottomSheet() {
+function BottomSheet(props: { label: string; children: ComponentChildren }) {
   const snap = sheetSnap.value;
   const cycle = () => (sheetSnap.value = SNAPS[(SNAPS.indexOf(snap) + 1) % SNAPS.length]);
-  // simple drag: up = bigger, down = smaller
   const onPointerDown = (e: PointerEvent) => {
     const y0 = e.clientY;
     const up = (ev: PointerEvent) => {
@@ -53,23 +69,11 @@ function BottomSheet() {
     addEventListener('pointerup', up);
   };
   return (
-    <section class="sheet" data-snap={snap} aria-label={t('overview.title')}>
+    <section class="sheet" data-snap={snap} aria-label={props.label}>
       <button class="sheet-handle" aria-label={t('sheet.resize')} onClick={cycle} onPointerDown={onPointerDown}
         onKeyDown={(e) => { if (e.key === 'Escape') sheetSnap.value = 'peek'; }}><span /></button>
-      <div class="panel-body">
-        <Breadcrumb />
-        <PanelContent />
-      </div>
+      <div class="panel-body">{props.children}</div>
     </section>
-  );
-}
-
-function TopBar() {
-  return (
-    <header class="topbar">
-      <div class="brand-row"><MenuButton /><Brand /></div>
-      <SearchBox />
-    </header>
   );
 }
 
@@ -89,32 +93,101 @@ function LiteMode() {
   );
 }
 
+function Toast() {
+  return toast.value ? <div class="toast" role="status" aria-live="polite">{toast.value}</div> : null;
+}
+
+/** Authorities: the full map app (unchanged) + send alert and sign out. */
+function AuthoritiesView() {
+  const u = currentUser.value!;
+  useEffect(() => { startAlerts(u); return stopAlerts; }, [u.id]);
+  const lite = slowNetwork.value && !forceMap.value;
+  const showMap = !!tileKeys.value && !lite;
+  const alertsBtn = <button class="icon-btn" aria-label={t('alerts.open')} title={t('alerts.open')} aria-pressed={route.value.name === 'alerts'} onClick={() => navigate({ name: 'alerts' })}><BellRing size={20} /></button>;
+  const brandRow = <div class="brand-row"><MenuButton /><Brand />{alertsBtn}<LogoutButton /></div>;
+  return (
+    <>
+      {/* DOM order = keyboard order: panel first, then map controls, then the map canvas. */}
+      <Shell label={t('overview.title')}
+        head={<>{brandRow}<SearchBox /><Breadcrumb /></>}
+        topbar={<>{brandRow}<SearchBox /></>}
+        body={<>{isMobile.value && <Breadcrumb />}<PanelContent /></>} />
+      {showMap && <MapControls />}
+      {showMap && <MapView />}
+      {lite && <LiteMode />}
+      {showMap && !isMobile.value && <Legend mode="full" />}
+      <NetworkBanner />
+      <MenuDialog /><LayersDialog /><A11yDialog /><ShareDialog /><AboutDialog /><OfflineDialog />
+    </>
+  );
+}
+
+/** Adult: read-only basic map + alerts inbox + their school. No management tools. */
+function AdultView() {
+  const u = currentUser.value!;
+  useEffect(() => { startAlerts(u); return stopAlerts; }, [u.id]);
+  const s = u.schoolId ? dataset.value?.byId.get(u.schoolId) : undefined;
+  const lite = slowNetwork.value && !forceMap.value;
+  const showMap = !!tileKeys.value && !lite;
+  const head = <div class="brand-row"><Brand /><LangSelect /><LogoutButton /></div>;
+  const body = (
+    <>
+      <p class="small muted">{t('session.signedInAs', { name: u.name })} · {t('adult.readOnly')}</p>
+      {s && (
+        <section class="card" aria-labelledby="my-school-h">
+          <h3 id="my-school-h">{t('adult.mySchool')}</h3>
+          <p><b>{s.name}</b></p>
+          <p class="status"><StatusDot status={s.connectivity} />{t('school.status')}: {t(`status.${s.connectivity}`)}{dataset.value?.connectivity?.kind === 'estimate' && s.connectivity !== 'unknown' ? ` (${t('status.estimated')})` : ''}</p>
+          {dataset.value?.connectivity?.kind === 'estimate' && <p class="notice">{t('notice.estimate')}</p>}
+        </section>
+      )}
+      <section class="card" aria-labelledby="inbox-h">
+        <h3 id="inbox-h">{t('inbox.title')}</h3>
+        {inbox.value.length === 0 ? <p class="muted">{t('inbox.empty')}</p> : inbox.value.map((a) => <AlertCard key={a.id} alert={a} />)}
+      </section>
+    </>
+  );
+  return (
+    <>
+      <Shell label={t('inbox.title')} head={head} topbar={head} body={body} />
+      {showMap && <MapControls basic />}
+      {showMap && <MapView mode="basic" highlightSchool={u.schoolId} />}
+      {lite && <LiteMode />}
+      {showMap && !isMobile.value && <Legend mode="basic" />}
+      <NetworkBanner />
+      <A11yDialog /><OfflineDialog />
+    </>
+  );
+}
+
 export function App() {
   // reflect theme + language on <html> (tokens.css themes, Sinhala/Tamil line heights)
+  const role = session.value?.role ?? null;
   useEffect(() => {
-    document.documentElement.dataset.theme = theme.value;
+    document.documentElement.dataset.theme = role === 'kids' ? 'kids' : theme.value;
     document.documentElement.lang = lang.value;
     document.title = t('app.title');
-  }, [theme.value, lang.value]);
+  }, [theme.value, lang.value, role]);
+  // Route guard: no session -> login; a role on someone else's view -> its own view.
+  useEffect(() => {
+    const to = redirectFor(role, route.value);
+    if (to) navigate(to, true);
+  }, [role, route.value]);
   // move the mobile sheet up when something is selected
   useEffect(() => {
     if (isMobile.value && route.value.name !== 'home' && sheetSnap.peek() === 'peek') sheetSnap.value = 'half';
   }, [route.value]);
 
-  const lite = slowNetwork.value && !forceMap.value;
-  const showMap = !!tileKeys.value && !lite;
+  const blocked = redirectFor(role, route.value) !== null;
   return (
     <>
-      {/* DOM order = keyboard order: panel first, then map controls, then the map canvas. */}
-      {isMobile.value ? <><TopBar /><BottomSheet /></> : <SidePanel />}
-      {showMap && <MapControls />}
-      {showMap && <MapView />}
-      {lite && <LiteMode />}
-      {showMap && !isMobile.value && <Legend />}
-      <NetworkBanner />
-      <MenuDialog /><LayersDialog /><A11yDialog /><ShareDialog /><AboutDialog /><OfflineDialog />
-      {toast.value && <div class="toast" role="status" aria-live="polite">{toast.value}</div>}
+      {!blocked && !role && <LoginView />}
+      {!blocked && role === 'kids' && <KidsView />}
+      {!blocked && role === 'adult' && <AdultView />}
+      {!blocked && role === 'authorities' && <AuthoritiesView />}
+      <Toast />
       <span hidden data-testid="ready">{dataset.value ? 'data' : ''}</span>
+      <span hidden data-testid="view">{blocked ? '' : role ?? 'login'}</span>
     </>
   );
 }

@@ -5,6 +5,7 @@ import { href, navigate, route, type Route } from '../router';
 import { areaName, fmtDate, fmtNumber, t, type Key } from '../i18n';
 import type { AdminArea, Dataset, Level, School } from '../data/types';
 import { StatusDot } from './ui';
+import { AlertsPanel } from './Alerts';
 
 const LEVELS: Level[] = ['primary', 'secondary', 'primary_secondary'];
 
@@ -256,6 +257,7 @@ export function PanelContent() {
   const r = route.value;
   if (dataError.value) return <ErrorState />;
   if (!ds) return <Loading />;
+  if (r.name === 'alerts') return <AlertsPanel />;
   if (r.name === 'school') return <SchoolView id={r.id} />;
   if (r.name === 'district' || r.name === 'province') return <AreaView kind={r.name} id={r.id} />;
   return <Overview />;

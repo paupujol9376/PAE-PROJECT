@@ -1,0 +1,9 @@
+{
+  "name": "pae-alerts-server",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Example backend for PAE alerts: receives POST /api/alerts and sends SMS through Twilio. Not deployed; reference only.",
+  "scripts": { "start": "node --env-file=.env index.js" },
+  "dependencies": { "express": "4.21.1", "twilio": "5.3.6" }
+}

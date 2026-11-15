@@ -72,6 +72,9 @@ export function buildStyle(o: StyleOptions): StyleSpecification {
     { id: 'background', type: 'background', paint: { 'background-color': m['map-water'] } },
     { id: 'land', type: 'fill', source: 'land', paint: { 'fill-color': m['map-land'] } },
     { id: 'water', type: 'fill', source: 'base', 'source-layer': 'water', paint: { 'fill-color': m['map-water'] } },
+    // Risk zones: prepared but EMPTY. No official hazard data is in the project yet; the app
+    // never invents zones. Fill data/risk.json (GeoJSON) and load it into this source.
+    { id: 'risk-zones', type: 'fill', source: 'risk', paint: { 'fill-color': m['map-risk'], 'fill-opacity': 0.35, 'fill-outline-color': m['map-risk'] } },
     {
       id: 'waterway', type: 'line', source: 'base', 'source-layer': 'waterway', minzoom: 8,
       paint: { 'line-color': m['map-water'], 'line-width': W([[8, 0.6], [12, 1.4], [16, 4]]) },
@@ -173,6 +176,7 @@ export function buildStyle(o: StyleOptions): StyleSpecification {
       base: { type: 'vector', url: `pmtiles://${o.baseKey}`, attribution: '<a href="https://www.openstreetmap.org/copyright">© OpenStreetMap contributors</a>' },
       roads: { type: 'vector', url: `pmtiles://${o.roadsKey}` },
       schools: { type: 'geojson', data: { type: 'FeatureCollection', features: [] }, attribution: 'Schools: Giga' },
+      risk: { type: 'geojson', data: { type: 'FeatureCollection', features: [] } },
     },
     layers,
   };

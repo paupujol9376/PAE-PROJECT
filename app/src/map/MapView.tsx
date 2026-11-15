@@ -4,7 +4,7 @@ import maplibregl, { type GeoJSONSource, type Map as MLMap, type FilterSpecifica
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { buildStyle, ROAD_CLASSES, ROAD_GROUPS, SRI_LANKA_BOUNDS, SRI_LANKA_FIT, type StyleOptions } from './style';
 import { protocol, tileKeys } from '../offline/offline';
-import { dataset, flyRequest, isMobile, lang, levelFilter, mapZoom, panelOpen, roadGroups, roadHighlight, showBoundaries, showLabels, theme } from '../state';
+import { dataset, flyRequest, isMobile, lang, levelFilter, mapZoom, panelOpen, roadGroups, roadHighlight, statusFilter, showBoundaries, showLabels, theme } from '../state';
 import { navigate, route } from '../router';
 import { toGeoJSON } from '../data/schools';
 import { areaName, t, type Key } from '../i18n';
@@ -14,7 +14,11 @@ maplibregl.addProtocol('pmtiles', protocol.tile);
 const BASE = import.meta.env.BASE_URL;
 const PANEL_W = 340 + 24; // --panel-width + 2 × --panel-gutter
 
-export function MapView() {
+const BASIC_GROUPS = new Set(['major', 'local']);
+
+/** mode "full" (authorities): every tool. mode "basic" (adult): read-only, fixed road groups, no selection by click. */
+export function MapView(props: { mode?: 'full' | 'basic'; highlightSchool?: string }) {
+  const basic = props.mode === 'basic';
   const el = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -25,7 +29,7 @@ export function MapView() {
     const opts = (): StyleOptions => ({
       theme: theme.value, roadsKey: tileKeys.value!.roads, baseKey: tileKeys.value!.base,
       dataUrl: `${BASE}data/`, glyphs: `${location.origin}${BASE}glyphs/{fontstack}/{range}.pbf`,
-      roadGroups: roadGroups.peek(), boundaries: showBoundaries.peek(), labels: showLabels.peek(),
+      roadGroups: basic ? BASIC_GROUPS : roadGroups.peek(), boundaries: showBoundaries.peek(), labels: showLabels.peek(),
     });
     const map: MLMap = new maplibregl.Map({
       container: el.current,
@@ -53,12 +57,16 @@ export function MapView() {
       if (ds && src) src.setData(toGeoJSON(ds.schools));
     };
     const applyFilter = () => {
-      const lv = [...levelFilter.value];
-      if (map.getLayer('schools')) map.setFilter('schools', lv.length ? (['in', ['get', 'level'], ['literal', lv]] as FilterSpecification) : null);
+      const lv = [...levelFilter.value], st = basic ? [] : [...statusFilter.value];
+      const parts: FilterSpecification[] = [];
+      if (lv.length) parts.push(['in', ['get', 'level'], ['literal', lv]] as FilterSpecification);
+      if (st.length) parts.push(['in', ['get', 'status'], ['literal', st]] as FilterSpecification);
+      if (map.getLayer('schools')) map.setFilter('schools', parts.length ? (['all', ...parts] as FilterSpecification) : null);
     };
     const applySelection = () => {
       const r = route.value;
-      if (map.getLayer('schools-selected')) map.setFilter('schools-selected', ['==', ['get', 'id'], r.name === 'school' ? r.id : '']);
+      const id = basic ? props.highlightSchool ?? '' : r.name === 'school' ? r.id : '';
+      if (map.getLayer('schools-selected')) map.setFilter('schools-selected', ['==', ['get', 'id'], id]);
     };
     const applyAll = () => { setSchools(); applyFilter(); applySelection(); };
     map.on('load', applyAll);
@@ -78,7 +86,7 @@ export function MapView() {
     const origOpacity = new Map<string, unknown>();
     map.on('style.load', () => origOpacity.clear());
     const applyRoads = () => {
-      const groups = roadGroups.value, sel = roadHighlight.value;
+      const groups = basic ? BASIC_GROUPS : roadGroups.value, sel = basic ? null : roadHighlight.value;
       const set = (id: string, on: boolean) => map.getLayer(id) && map.setLayoutProperty(id, 'visibility', on ? 'visible' : 'none');
       const fade = (id: string, on: boolean) => {
         if (!map.getLayer(id)) return;
@@ -105,7 +113,7 @@ export function MapView() {
       set('roads-label', l); set('place-label', l);
     });
     const stopData = effect(() => { dataset.value; if (styleReady) setSchools(); });
-    const stopFilter = effect(() => { levelFilter.value; if (styleReady) applyFilter(); });
+    const stopFilter = effect(() => { levelFilter.value; statusFilter.value; if (styleReady) applyFilter(); });
     const stopSel = effect(() => { route.value; if (styleReady) applySelection(); });
     // keep the island visible next to the docked panel
     const stopPad = effect(() => {
@@ -124,7 +132,7 @@ export function MapView() {
       const r = route.value, ds = dataset.value;
       lang.value; // re-render text on language change
       const s = r.name === 'school' && ds ? ds.byId.get(r.id) : undefined;
-      if (!s || isMobile.value) { popup.remove(); return; }
+      if (!s || isMobile.value || basic) { popup.remove(); return; }
       const box = document.createElement('div');
       box.className = 'pop';
       const name = document.createElement('strong');
@@ -141,12 +149,21 @@ export function MapView() {
     cleanups.push(stopPopup, () => popup.remove());
 
     // --- interaction ---
-    map.on('click', 'schools', (e) => {
-      const id = e.features?.[0]?.properties?.id as string | undefined;
-      if (id) navigate({ name: 'school', id });
-    });
+    if (!basic) {
+      map.on('click', 'schools', (e) => {
+        const id = e.features?.[0]?.properties?.id as string | undefined;
+        if (id) navigate({ name: 'school', id });
+      });
+    }
     map.on('mouseenter', 'schools', () => (map.getCanvas().style.cursor = 'pointer'));
     map.on('mouseleave', 'schools', () => (map.getCanvas().style.cursor = ''));
+    if (basic && props.highlightSchool) {
+      const stopCentre = effect(() => {
+        const s = dataset.value?.byId.get(props.highlightSchool!);
+        if (s) { map.jumpTo({ center: [s.lon, s.lat], zoom: 12 }); queueMicrotask(() => stopCentre()); }
+      });
+      cleanups.push(stopCentre);
+    }
     map.on('zoomend', () => (mapZoom.value = map.getZoom()));
     map.on('load', () => (mapZoom.value = map.getZoom()));
     map.on('idle', () => document.body.setAttribute('data-map-idle', '1'));

@@ -1,20 +1,20 @@
 import { useEffect, useState } from 'preact/hooks';
 import { Accessibility, Layers, List, Minus, Plus } from 'lucide-preact';
 import type { Map as MLMap } from 'maplibre-gl';
-import { a11y, dialog, legendOpen, mapZoom, roadHighlight, roadStats, theme } from '../state';
+import { a11y, dialog, legendOpen, mapZoom, roadHighlight, roadStats, statusFilter, theme } from '../state';
 import { ROAD_CLASSES } from '../map/style';
 import { fmtDate, fmtNumber, t, type Key } from '../i18n';
 import { StatusDot } from './ui';
 
 const map = () => (window as unknown as { __map?: MLMap }).__map;
 
-export function MapControls() {
+export function MapControls(props: { basic?: boolean }) {
   return (
     <div class="controls" role="toolbar" aria-label="Map controls" aria-orientation="vertical">
       <button class="icon-btn" aria-label={t('controls.zoomIn')} title={t('controls.zoomIn')} onClick={() => map()?.zoomIn()}><Plus size={20} /></button>
       <button class="icon-btn" aria-label={t('controls.zoomOut')} title={t('controls.zoomOut')} onClick={() => map()?.zoomOut()}><Minus size={20} /></button>
       <button class="icon-btn" aria-label={t('a11y.title')} title={t('a11y.title')} aria-pressed={a11y.value} onClick={() => (dialog.value = 'a11y')}><Accessibility size={20} /></button>
-      <button class="icon-btn" aria-label={t('layers.title')} title={t('layers.title')} onClick={() => (dialog.value = 'layers')}><Layers size={20} /></button>
+      {!props.basic && <button class="icon-btn" aria-label={t('layers.title')} title={t('layers.title')} onClick={() => (dialog.value = 'layers')}><Layers size={20} /></button>}
       <button class="icon-btn" aria-label={t(legendOpen.value ? 'controls.legendHide' : 'controls.legendShow')} title={t('legend.title')} aria-pressed={legendOpen.value}
         onClick={() => (legendOpen.value = !legendOpen.value)}><List size={20} /></button>
     </div>
@@ -71,17 +71,39 @@ function RoadDetail(props: { classes: string[] }) {
   );
 }
 
-export function LegendBody() {
+export function LegendBody(props: { mode?: 'full' | 'basic' }) {
   theme.value; // re-render on theme change (swatches read CSS variables)
+  const sf = statusFilter.value;
+  const toggleStatus = (s: 'connected' | 'not_connected' | 'unknown') => {
+    const n = new Set(sf);
+    n.has(s) ? n.delete(s) : n.add(s);
+    statusFilter.value = n;
+  };
+  const statusRows = (['connected', 'not_connected', 'unknown'] as const);
   return (
     <>
       <h4>{t('legend.status')}</h4>
-      {(['connected', 'not_connected', 'unknown'] as const).map((s) => (
+      {props.mode === 'basic' ? statusRows.map((s) => (
         <div class="li" key={s}><StatusDot status={s} />{t(`status.${s}` as Key)}</div>
-      ))}
-      <h4>{t('legend.roads')}</h4>
-      <p class="small muted legend-hint">{t('legend.hint')}</p>
-      <ul class="road-rows">
+      )) : (
+        <>
+          <p class="small muted legend-hint">{t('legend.statusHint')}</p>
+          <ul class="road-rows">
+            {statusRows.map((s) => (
+              <li key={s}><button class="li road-row" aria-pressed={sf.has(s)} onClick={() => toggleStatus(s)}><StatusDot status={s} /><span class="road-name">{t(`status.${s}` as Key)}</span></button></li>
+            ))}
+          </ul>
+        </>
+      )}
+      {props.mode === 'basic' && (
+        <>
+          <h4>{t('legend.risk')}</h4>
+          <div class="li"><span class="swatch risk" aria-hidden="true" /><span class="muted">{t('legend.riskNoData')}</span></div>
+        </>
+      )}
+      {props.mode === 'basic' ? null : <h4>{t('legend.roads')}</h4>}
+      {props.mode !== 'basic' && <p class="small muted legend-hint">{t('legend.hint')}</p>}
+      {props.mode !== 'basic' && <ul class="road-rows">
         {ROAD_ROWS.map((r) => {
           const sel = roadHighlight.value;
           const on = !!sel && sel.join() === r.classes.join();
@@ -97,15 +119,15 @@ export function LegendBody() {
             </li>
           );
         })}
-      </ul>
-      {roadHighlight.value && <button class="link small" onClick={() => (roadHighlight.value = null)}>{t('legend.clear')}</button>}
+      </ul>}
+      {props.mode !== 'basic' && roadHighlight.value && <button class="link small" onClick={() => (roadHighlight.value = null)}>{t('legend.clear')}</button>}
     </>
   );
 }
 
-export function Legend() {
+export function Legend(props: { mode?: 'full' | 'basic' }) {
   if (!legendOpen.value) return null;
-  return <section class="legend" aria-label={t('legend.title')}><LegendBody /></section>;
+  return <section class="legend" aria-label={t('legend.title')}><LegendBody mode={props.mode} /></section>;
 }
 
 /** Small hook: re-render every second while a value is changing (used for progress). */

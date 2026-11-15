@@ -93,6 +93,7 @@
   --school-stroke: #0D1219;
   --selected: #3EC6B8;
   --road-core: #FFF4E0;
+  --map-risk: #B07CFF;
 }
 
 @media (prefers-color-scheme: light) {
@@ -141,6 +142,7 @@
     --school-stroke: #FFFFFF;
     --selected: #0D7A70;
     --road-core: #FFFFFF;
+    --map-risk: #7A3FD1;
   }
 }
 
@@ -189,6 +191,7 @@
   --school-stroke: #FFFFFF;
   --selected: #0D7A70;
   --road-core: #FFFFFF;
+  --map-risk: #7A3FD1;
 }
 
 :root[data-theme="a11y"] {
@@ -236,6 +239,41 @@
   --school-stroke: #000000;
   --selected: #F0E442;
   --road-core: #FFFFFF;
+  --map-risk: #CC79A7;
+}
+
+:root[data-theme="kids"], .kids-scope {
+  --bg: #FFF8EC;
+  --surface: #FFFFFF;
+  --surface-raised: #FFF1D6;
+  --border: #EBCFA3;
+  --border-input: #8A6A3C;
+  --text: #2B1D0E;
+  --text-muted: #5C4A36;
+  --accent: #0B6E99;
+  --on-accent: #FFFFFF;
+  --focus: #0B6E99;
+  --danger: #B42318;
+  --warning: #8A5A00;
+  --success: #18794E;
+  --status-connected: #18794E;
+  --status-not-connected: #B42318;
+  --status-unknown: #5C6470;
+  --speed-good: #18794E;
+  --speed-moderate: #8A5A00;
+  --speed-bad: #B42318;
+  --speed-unknown: #5C6470;
+  --chart-bar: #0B6E99;
+  --chart-benchmark: #8A5A00;
+  --scrim: #2B1D0E;
+  --kid-1: #FFE08A;
+  --kid-2: #BFE3FF;
+  --kid-3: #FFC9C9;
+  --kid-ok: #C9F2D9;
+  --alert-flood: #0B5CAD;
+  --alert-evacuation: #B42318;
+  --alert-school_closed: #7A4B00;
+  --alert-all_clear: #18794E;
 }
 
 :root { color-scheme: dark; }

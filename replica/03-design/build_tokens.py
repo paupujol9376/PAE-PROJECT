@@ -47,7 +47,7 @@ def main():
     t = json.loads((HERE / "tokens.json").read_text(encoding="utf-8"))
     lines, fails = [], 0
     for theme, pal in t["color"].items():
-        fails += check(pal, t["pairs"], theme, lines)
+        fails += check(pal, t["pairs"] + (t.get("kidsPairs", []) if theme == "kids" else []), theme, lines)
     for theme in ("dark", "light", "a11y"):
         fails += check(t["map"][theme], t["map"]["pairs"], "map-" + theme, lines)
     lines.append(f"\n{'ALL PASS' if not fails else str(fails) + ' FAIL(S)'}")
@@ -80,6 +80,9 @@ def main():
     out.append("@media (prefers-color-scheme: light) {\n" + css_block(":root:not([data-theme])", light).replace("\n", "\n  ").rstrip() + "\n}\n")
     out.append(css_block(":root[data-theme=\"light\"]", light))
     out.append(css_block(":root[data-theme=\"a11y\"]", a11y))
+    if "kids" in t["color"]:
+        # kids: light, friendly palette for the kids view (no map); also usable as a .kids-scope class
+        out.append(css_block(":root[data-theme=\"kids\"], .kids-scope", t["color"]["kids"]))
     out.append(":root { color-scheme: dark; }\n:root[data-theme=\"light\"] { color-scheme: light; }\n")
     out.append("[lang=\"si\"], [lang=\"ta\"] {\n  --font-xs-line: 20px; --font-sm-line: 24px; --font-base-line: 28px;\n  --font-lg-line: 32px; --font-xl-line: 36px; --font-metric-line: 40px;\n}\n")
     (HERE / "tokens.css").write_text("\n".join(out), encoding="utf-8")

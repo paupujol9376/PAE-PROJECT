@@ -14,10 +14,11 @@ An offline-first mobile application that helps schools in Sri Lanka respond to e
 4. [Architecture decisions](#architecture-decisions)
 5. [Folder structure](#folder-structure)
 6. [Install and run](#install-and-run)
-7. [Regenerating the data](#regenerating-the-data)
-8. [Status by phase](#status-by-phase)
-9. [Known issues](#known-issues)
-10. [Data sources and licences](#data-sources-and-licences)
+7. [Roles, sign-in and alerts](#roles-sign-in-and-alerts)
+8. [Regenerating the data](#regenerating-the-data)
+9. [Status by phase](#status-by-phase)
+10. [Known issues](#known-issues)
+11. [Data sources and licences](#data-sources-and-licences)
 
 
 ---
@@ -94,6 +95,8 @@ The full rationale is written in `replica/02-architecture/` (phase 2).
 │   └── 05-qa/          # Test plan, bugs, diff, evidence
 ├── pipeline/           # Reproducible data builds: roads/base PMTiles (Planetiler), schools + land + admin (Python)
 ├── app/                # PWA: Vite + TypeScript + Preact + MapLibre + PMTiles (src/, public/glyphs, scripts/)
+│   └── src/{auth,alerts,views,kids}/  # roles, demo sign-in, AlertService (mock + SMS), kids/login views
+├── server/             # Example alerts backend (Express + Twilio). Reference only, not deployed
 └── data/               # (gitignored) .osm.pbf, .pmtiles: generate locally
 ```
 
@@ -133,6 +136,59 @@ node replica/03-design/serve.mjs 8080             # static server with HTTP Rang
 ```
 
 The preview reads `data/schools-preview.geojson` (build it with `python -I replica/03-design/make_preview_schools.py`).
+
+## Roles, sign-in and alerts
+
+> ⚠️ **Demo authentication only.** Sign-in happens in the browser and the demo accounts ship
+> inside the JavaScript bundle, so anyone can read them or edit the stored session. For
+> production you need a backend with real accounts, passwords stored with a slow hash
+> (argon2/bcrypt), short-lived signed tokens, and access control checked **on the server** for
+> every request (only authorities may send alerts).
+
+The app opens on a sign-in page with three roles. Each role sees a different interface and can only
+open its own routes (anything else redirects to its home). The session is kept in `localStorage`,
+so a signed-in user keeps working offline.
+
+| Role | Sign-in | What they see |
+|---|---|---|
+| **authorities** | username + password | The full map app (search, layers, filters, legend, offline use) plus **Send alert** (bell icon or menu → `/alerts`): type, message, language, recipients (everyone / districts / schools / roles) and the history of sent alerts with their status (sent / delivered / read). |
+| **adult** | username or phone + password | Read-only map with the basic layers (schools open/closed, risk zones), their school, and the inbox of alerts addressed to them. No management tools. |
+| **kids** | animal + 4-digit PIN, or a code from an adult | No map, no menus: three big buttons (message, my school, I need help). New alerts appear as a big card with an icon per type, a short phrase in the child's language, a chime and vibration, and a **Listen** button (Web Speech API, when the device has a voice for that language). |
+
+Demo accounts (fictitious):
+
+| Role | Credentials | Linked school |
+|---|---|---|
+| authorities | `officer.demo` / `demo-officer-2026` | — |
+| adult | `parent.demo` or phone `+94 70 000 0000` / `demo-parent-2026` | ABAKOLAWEWA K.V. (Hambantota) |
+| kids | Elephant + PIN `1234`, or code `KID-4821` | ABAKOLAWEWA K.V. (Hambantota) |
+
+"Open / closed" means the **estimated** connection status (green = connected = open, red = not
+connected = closed), the same data as the map colours. It is an estimate per district, not a real
+per-school status (see Known issues).
+
+### Alerts: how they are delivered
+
+`app/src/alerts/` defines an `AlertService` interface with two implementations:
+
+- **`MockAlertService` (default):** stores alerts in IndexedDB on the device and announces them to
+  every open tab of the same browser through `BroadcastChannel`, simulating an incoming SMS. Works
+  offline. Delivered/read status updates live in the authorities history.
+- **`SmsAlertService`:** sends alerts to a backend, `POST /api/alerts`, and keeps a local copy.
+
+Alert model: `id, type (flood | evacuation | school_closed | all_clear), text, lang (si | ta | en),
+recipients (all | districts | schools | roles), createdAt, author, status (sent | delivered | read)`.
+
+**Real SMS mode:**
+
+1. Run the example server in `server/` (Express + Twilio). It reads `TWILIO_ACCOUNT_SID`,
+   `TWILIO_AUTH_TOKEN`, `TWILIO_FROM_NUMBER` and the optional `ALERTS_API_TOKEN` from **its own**
+   `server/.env`. See `server/README.md` for the endpoint and run steps.
+2. Build the app with public settings only:
+   `VITE_ALERTS_MODE=sms VITE_ALERTS_API_URL=https://your-server npm run build`.
+
+Secrets never go into the app: `VITE_*` values are public. `npm run build` fails if any Giga,
+Twilio or alerts-token variable name or value from `.env` appears in `app/dist`.
 
 ## Regenerating the data
 
@@ -208,6 +264,10 @@ The schema is `pipeline/roads.yml`; the last gate results are in
 - Sinhala and Tamil UI texts are drafts written by the developer. They need review by native speakers before release.
 - **School connection status is an estimate, not measured data.** Real per-school status is only in Giga's private APIs. `pipeline/estimate_connectivity.py` applies the project owner's visual estimate of the share of connected schools per region (read from an image of the Giga map, ±10-15 points) to each district: 3,895 of 10,000 schools (39 %) are marked connected. The app labels it "estimate" everywhere. It must not be used for decisions about a specific school. Replace `data/connectivity.json` with real data when the Giga "School profile" API is available; the app does not need changes.
 - Legend road names follow what OSM data shows for Sri Lanka (`pipeline/road_stats.py`): `trunk` ways carry A numbers (3,138 refs), `primary` ways carry B numbers (5,481), `motorway` ways carry E numbers (584); `secondary` is mixed (C 155, B 100) and only 17 % have a number, so it is not labelled with a class letter. Kilometres count each carriageway of dual roads separately.
+- Roles: sign-in is demo-only (see the warning above). There is one session per browser: tabs share it, so to try two roles at once keep both tabs open without reloading. Mock alerts reach only tabs of the same browser on the same device; real delivery needs SMS mode.
+- The kids "my school" light shows the estimated connection status, not whether the school is really open. Do not rely on it in an emergency until real per-school data exists.
+- Risk zones (adult map) are prepared but empty: there is no official hazard dataset in the project yet. Nothing is invented.
+- Kids help screen shows 117 as the emergency number (Sri Lanka Disaster Management Centre hotline). Confirm it with the local authority before release.
 - Speed data is still missing, so 3 must-have features from the Giga recon are blocked: speed colours, week navigator and speed chart (see `replica/01-recon/features.csv`).
 - Offline maps need OPFS with `createWritable` (Chrome, Edge, Android Chrome, Firefox). Safari shows "cannot store maps" and still works online.
 - The JS bundle is 906 KB raw / 255 KB gzip, mostly MapLibre. Performance on 3G is measured in phase 5.
