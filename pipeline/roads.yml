@@ -1,0 +1,121 @@
+# Planetiler custom schema: every OSM highway=* line of Sri Lanka in one layer `roads`.
+#
+# Run through pipeline/build-roads.ps1 (or .sh). Direct use:
+#   java -jar pipeline/bin/planetiler.jar generate-custom --schema=pipeline/roads.yml \
+#        --osm_path=data/sri-lanka-latest.osm.pbf --output=data/roads.pmtiles --force
+#
+# Design notes (see replica/01-data/report.md for the full rationale):
+# - ALL highway=* ways that are lines are kept, footways/paths/steps/tracks included,
+#   because the brief asks for "TODAS las carreteras". Only area=yes ways are dropped
+#   (those are squares/plazas drawn as polygons, not linear roads).
+# - No tile_post_process merge: merging would throw away the per-way feature id, which
+#   we keep (= OSM way id) so the app can identify segments and so completeness can be
+#   verified against the source PBF.
+# - `class` is a normalised road class; `highway` keeps the raw OSM value.
+#   *_link ways get the class of their parent road plus link=true.
+
+schema_name: PAE Sri Lanka roads
+schema_description: All OpenStreetMap highway=* lines of Sri Lanka, normalised for a Strava-like MapLibre style.
+attribution: <a href="https://www.openstreetmap.org/copyright" target="_blank">&copy; OpenStreetMap contributors</a>
+version: 1.0.0
+is_overlay: false
+
+args:
+  osm_path:
+    description: Path to the Sri Lanka .osm.pbf extract
+    default: data/sri-lanka-latest.osm.pbf
+  minzoom: 5
+  maxzoom: 14
+
+sources:
+  osm:
+    type: osm
+    local_path: '${ args.osm_path }'
+    url: https://download.geofabrik.de/asia/sri-lanka-latest.osm.pbf
+
+definitions:
+  road_class: &road_class
+    motorway:     { highway: [motorway, motorway_link] }
+    trunk:        { highway: [trunk, trunk_link] }
+    primary:      { highway: [primary, primary_link] }
+    secondary:    { highway: [secondary, secondary_link] }
+    tertiary:     { highway: [tertiary, tertiary_link] }
+    unclassified: { highway: unclassified }
+    residential:  { highway: [residential, living_street, road] }
+    service:      { highway: [service, busway, bus_guideway, rest_area, services, escape] }
+    track:        { highway: track }
+    path:         { highway: [path, bridleway, trailhead] }
+    footway:      { highway: [footway, pedestrian, corridor, platform] }
+    cycleway:     { highway: cycleway }
+    steps:        { highway: steps }
+    construction: { highway: [construction, proposed] }
+    other: otherwise
+
+layers:
+  - id: roads
+    features:
+      - source: osm
+        geometry: line
+        include_when:
+          highway: __any__
+        exclude_when:
+          area: 'yes'
+        # Class-dependent minimum zoom keeps z5-z11 tiles small.
+        min_zoom:
+          default_value: 13
+          overrides:
+            5:  { highway: [motorway, trunk, primary] }
+            8:  { highway: [secondary, motorway_link, trunk_link] }
+            9:  { highway: [primary_link] }
+            10: { highway: [tertiary, secondary_link] }
+            11: { highway: [unclassified, tertiary_link] }
+            12: { highway: [residential, living_street, road, service, busway, bus_guideway, track] }
+        # Simplification in tile pixels (256px tile): a bit coarser than the default below z14,
+        # Planetiler default (0.0625) at z14 so overzoomed geometry stays accurate.
+        tolerance: 0.2
+        tolerance_at_max_zoom: 0.0625
+        # Keep every way at z14, even sub-metre stubs (Planetiler's default 1/16 px would drop
+        # ~60 ways shorter than ~0.6 m that mappers use to split roads at barriers/bridges).
+        min_size_at_max_zoom: 0
+        attributes:
+          - key: class
+            value: *road_class
+          - key: highway
+            tag_value: highway
+          - key: link
+            value: true
+            include_when:
+              highway: '%_link'
+          - key: name
+            tag_value: name
+          - key: name:si
+            tag_value: name:si
+          - key: name:ta
+            tag_value: name:ta
+          - key: name:en
+            tag_value: name:en
+          - key: ref
+            tag_value: ref
+          # oneway: 1 = along way direction, -1 = against; omitted when not oneway.
+          - key: oneway
+            tag_value: oneway
+            type: direction
+            include_when:
+              oneway: ['yes', 'true', '1', '-1']
+          - key: bridge
+            value: true
+            include_when:
+              bridge: __any__
+            exclude_when:
+              bridge: 'no'
+          - key: tunnel
+            value: true
+            include_when:
+              tunnel: __any__
+            exclude_when:
+              tunnel: 'no'
+          - key: surface
+            tag_value: surface
+          - key: layer
+            tag_value: layer
+            type: integer
