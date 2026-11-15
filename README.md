@@ -109,6 +109,16 @@ cp .env.example .env        # then paste your Giga API keys
 
 The app commands (`npm install`, `npm run dev`) will be added in phase 4.
 
+**Design preview (phase 3):** after generating `data/roads.pmtiles` and a schools export, run:
+
+```bash
+python -I replica/03-design/build_tokens.py      # regenerate tokens.css + WCAG contrast report
+node replica/03-design/serve.mjs 8080             # static server with HTTP Range (PMTiles needs it)
+# open http://127.0.0.1:8080/replica/03-design/preview.html?theme=dark   (themes: dark, light, a11y)
+```
+
+The preview reads `data/schools-preview.geojson` (build it with `python -I replica/03-design/make_preview_schools.py`).
+
 ## Regenerating roads.pmtiles
 
 Heavy data is **not** stored in the repo. `pipeline/` turns the Geofabrik Sri Lanka extract into
@@ -148,7 +158,7 @@ The schema is `pipeline/roads.yml`; the last gate results are in
 | 1A: Recon of Giga map | ✅ Done (15 screens, 7 flows, 44 features; see `replica/01-recon/`) |
 | 1B: OSM → PMTiles roads pipeline | ✅ Done (gate passed, see `replica/01-data/`) |
 | 2: Architecture | ✅ Done (see `replica/02-architecture/architecture.md`) |
-| 3: Design system + map style | ⏳ Pending |
+| 3: Design system + map style | ✅ Done (tokens, 94/94 AA contrast, Strava-like road style; see `replica/03-design/`) |
 | 4: Build | ⏳ Pending |
 | 5: Test, diff, QA | ⏳ Pending |
 
@@ -159,6 +169,7 @@ The schema is `pipeline/roads.yml`; the last gate results are in
 - Giga connectivity status and speeds come from private APIs that this project has no access to. Schools are shown with status "unknown"; the UI is ready for a data provider.
 - Only page 1 of 2 of the Sri Lanka schools export is in `data/` (10,000 of ~10,100 schools). Download page 2 from the Giga portal into `data/`; the build merges every `School_report_*.csv`.
 - Sinhala/Tamil map labels: MapLibre cannot shape these scripts, so map labels use English names. All other UI text is fully translated.
+- No basemap yet: until `base.pmtiles` (water, coastline, boundaries) is built in phase 4, the sea and the land have the same colour in the map.
 - Recon screenshots of Giga are kept locally in `replica/01-recon/screens/` and are gitignored (third-party content, reference only). Regenerate them by re-running the recon (phase 1A).
 
 ## Data sources and licences
