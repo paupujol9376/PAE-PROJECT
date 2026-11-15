@@ -110,7 +110,8 @@ export function MapView() {
       const meta = document.createElement('span');
       meta.textContent = [t(`level.${s.level}` as Key), s.district && areaName(s.district)].filter(Boolean).join(' · ');
       const st = document.createElement('span');
-      st.textContent = `${t('school.status')}: ${t(`status.${s.connectivity}` as Key)}`;
+      const est = ds!.connectivity?.kind === 'estimate' && s.connectivity !== 'unknown' ? ` (${t('status.estimated')})` : '';
+      st.textContent = `${t('school.status')}: ${t(`status.${s.connectivity}` as Key)}${est}`;
       box.append(name, meta, st);
       popup.setLngLat([s.lon, s.lat]).setDOMContent(box).addTo(map);
     });

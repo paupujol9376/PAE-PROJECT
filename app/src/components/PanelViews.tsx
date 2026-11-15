@@ -56,15 +56,17 @@ function ConnectivityCard(props: { schools: School[] }) {
   const connected = props.schools.filter((s) => s.connectivity === 'connected').length;
   const withSpeed = props.schools.filter((s) => s.downloadMbps?.length).length;
   const hasData = props.schools.some((s) => s.connectivity !== 'unknown');
+  const estimate = dataset.value?.connectivity?.kind === 'estimate';
   return (
     <>
       <section class="card" aria-labelledby="kpi-h">
         <h3 id="kpi-h">{t('kpi.title')}</h3>
         <div class="kpis">
           <div class="kpi"><b data-testid="kpi-total">{fmtNumber(props.schools.length)}</b><span>{t('kpi.onMap')}</span></div>
-          <div class="kpi"><b>{hasData ? fmtNumber(connected) : '–'}</b><span>{t('kpi.connected')}</span></div>
-          <div class="kpi"><b>{hasData ? fmtNumber(withSpeed) : '–'}</b><span>{t('kpi.withSpeed')}</span></div>
+          <div class="kpi"><b data-testid="kpi-connected">{hasData ? `${estimate ? '≈' : ''}${fmtNumber(connected)}` : '–'}</b><span>{t('kpi.connected')}{estimate ? ` (${t('status.estimated')})` : ''}</span></div>
+          <div class="kpi"><b>{withSpeed ? fmtNumber(withSpeed) : '–'}</b><span>{t('kpi.withSpeed')}</span></div>
         </div>
+        {estimate && <p class="notice">{t('notice.estimate')}</p>}
       </section>
       <section class="card" aria-labelledby="speed-h">
         <h3 id="speed-h">{t('speed.title')}</h3>
@@ -206,7 +208,8 @@ export function SchoolView(props: { id: string }) {
   return (
     <>
       <h1 class="title">{s.name}</h1>
-      <p class="status"><StatusDot status={s.connectivity} />{t('school.status')}: {t(`status.${s.connectivity}` as Key)}</p>
+      <p class="status"><StatusDot status={s.connectivity} />{t('school.status')}: {t(`status.${s.connectivity}` as Key)}{ds.connectivity?.kind === 'estimate' && s.connectivity !== 'unknown' ? ` (${t('status.estimated')})` : ''}</p>
+      {ds.connectivity?.kind === 'estimate' && <p class="notice">{t('notice.estimate')}</p>}
       <section class="card" aria-labelledby="sd-h">
         <h3 id="sd-h">{t('school.details')}</h3>
         <dl class="dl">
@@ -221,7 +224,6 @@ export function SchoolView(props: { id: string }) {
       <section class="card" aria-labelledby="speed-s">
         <h3 id="speed-s">{t('speed.title')}</h3>
         <div class="metric">{t('speed.noData')}</div>
-        <p class="notice">{t('notice.noConnectivity')}</p>
       </section>
       <div class="btn-row">
         <button class="btn" onClick={() => flyTo({ center: [s.lon, s.lat], zoom: 15 })}><Crosshair size={18} aria-hidden="true" />{t('school.zoomTo')}</button>

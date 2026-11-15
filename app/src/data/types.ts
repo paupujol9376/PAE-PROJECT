@@ -41,6 +41,17 @@ export interface Dataset {
   districts: AdminArea[];
   schools: School[];
   byId: Map<string, School>;
+  /** Where the connectivity status comes from; undefined = no data (all "unknown"). */
+  connectivity?: { kind: 'estimate' | 'measured'; method: string; generatedAt: string };
+}
+
+/** data/connectivity.json (pipeline/estimate_connectivity.py, or a real provider later). */
+export interface ConnectivityFile {
+  version: 1;
+  kind: 'estimate' | 'measured';
+  method: string;
+  generatedAt: string;
+  status: Record<string, Connectivity>;
 }
 
 /** Plug point for private Giga connectivity data (not available yet). */
