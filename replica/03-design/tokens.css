@@ -71,6 +71,7 @@
   --speed-unknown: #9AA6B8;
   --chart-bar: #3EC6B8;
   --chart-benchmark: #F5B544;
+  --scrim: #000000;
   --map-land: #0D1219;
   --map-water: #05080D;
   --map-admin: #3A4558;
@@ -91,6 +92,7 @@
   --road-other: #6B7280;
   --school-stroke: #0D1219;
   --selected: #3EC6B8;
+  --road-core: #FFF4E0;
 }
 
 @media (prefers-color-scheme: light) {
@@ -117,6 +119,7 @@
     --speed-unknown: #6B7584;
     --chart-bar: #0D7A70;
     --chart-benchmark: #8A5A00;
+    --scrim: #111723;
     --map-land: #F1EFEA;
     --map-water: #C9DCEA;
     --map-admin: #9AA3B2;
@@ -137,6 +140,7 @@
     --road-other: #9AA0AA;
     --school-stroke: #FFFFFF;
     --selected: #0D7A70;
+    --road-core: #FFFFFF;
   }
 }
 
@@ -163,6 +167,7 @@
   --speed-unknown: #6B7584;
   --chart-bar: #0D7A70;
   --chart-benchmark: #8A5A00;
+  --scrim: #111723;
   --map-land: #F1EFEA;
   --map-water: #C9DCEA;
   --map-admin: #9AA3B2;
@@ -183,6 +188,7 @@
   --road-other: #9AA0AA;
   --school-stroke: #FFFFFF;
   --selected: #0D7A70;
+  --road-core: #FFFFFF;
 }
 
 :root[data-theme="a11y"] {
@@ -208,6 +214,7 @@
   --speed-unknown: #BDBDBD;
   --chart-bar: #56B4E9;
   --chart-benchmark: #F0E442;
+  --scrim: #000000;
   --map-land: #000000;
   --map-water: #0A1E33;
   --map-admin: #BDBDBD;
@@ -228,6 +235,7 @@
   --road-other: #7A7A7A;
   --school-stroke: #000000;
   --selected: #F0E442;
+  --road-core: #FFFFFF;
 }
 
 :root { color-scheme: dark; }

@@ -1,4 +1,5 @@
-# Only needed for pipeline/validate.py (the build itself needs Java 21 only).
+# Python packages for pipeline/validate.py (roads gate) and pipeline/build_schools.py (schools, land, admin). The tile builds need Java 21 only.
 osmium==4.3.2
 pmtiles==3.8.1
 mapbox-vector-tile==2.2.0
+shapely==2.2.0
