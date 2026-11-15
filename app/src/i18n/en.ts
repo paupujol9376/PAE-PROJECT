@@ -25,6 +25,8 @@ export const en = {
   'kpi.withSpeed': 'with speed data',
   'speed.title': 'Average download speed',
   'speed.noData': 'No data yet',
+  'notice.estimate': 'Connection status is an estimate per area, read from an image of the Giga map. It was not measured school by school: do not use it to make emergency decisions about a specific school.',
+  'status.estimated': 'estimate',
   'notice.noConnectivity': 'Connectivity data is not available for this dataset, so every school is shown in a neutral colour.',
   'level.title': 'Education level',
   'level.primary': 'Primary',

@@ -1,6 +1,6 @@
 feature,area,priority,original,clone,notes
 Full-screen vector map with dark theme,map,must,yes,yes,S01 | build: C09
-Sri Lanka school points coloured by connectivity status,map,must,yes,partial,"S09 legend | build: colours/legend ready; every school is ""unknown"" because connectivity APIs are private"
+Sri Lanka school points coloured by connectivity status,map,must,yes,partial,"S09 legend | build: colours by status from an ESTIMATE per district (pipeline/estimate_connectivity.py), labelled ""estimate"" in the UI; real per-school data needs the private Giga API"
 School points coloured by download-speed bucket (20 Mbps benchmark),map,must,yes,no,S09 legend + S12 | build: blocked: no speed data (private Giga API)
 Zoom in/out controls,map,must,yes,yes,map controls | build: C09
 Legend card with status and speed columns,map,must,yes,partial,S01 S09 | build: status + road classes; speed column left out until data exists

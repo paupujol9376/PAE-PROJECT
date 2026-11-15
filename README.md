@@ -146,6 +146,7 @@ powershell -ExecutionPolicy Bypass -File pipeline/build-roads.ps1   # tools + PB
 powershell -ExecutionPolicy Bypass -File pipeline/build-base.ps1    # data/base.pmtiles: inland water, rivers, places (about 20 s)
 python -m pip install -r pipeline/requirements.txt
 python -I pipeline/build_schools.py --data-dir data                 # data/schools.json, land.json, admin.json (about 30 s)
+python -I pipeline/estimate_connectivity.py --data-dir data         # data/connectivity.json: ESTIMATED status per district (optional)
 cd app; npm run data                                                # copy into the app
 ```
 
@@ -204,7 +205,8 @@ The schema is `pipeline/roads.yml`; the last gate results are in
 - Only page 1 of 2 of the Sri Lanka schools export is in `data/` (10,000 of ~10,100 schools). Download page 2 from the Giga portal into `data/`; the build merges every `School_report_*.csv`.
 - Sinhala/Tamil map labels: MapLibre cannot shape these scripts, so map labels use English names. All other UI text is fully translated.
 - Sinhala and Tamil UI texts are drafts written by the developer. They need review by native speakers before release.
-- Without connectivity data, 4 must-have features from the Giga recon are blocked: speed colours, week navigator, speed chart and legend status filters (see `replica/01-recon/features.csv`).
+- **School connection status is an estimate, not measured data.** Real per-school status is only in Giga's private APIs. `pipeline/estimate_connectivity.py` applies the project owner's visual estimate of the share of connected schools per region (read from an image of the Giga map, ±10-15 points) to each district: 3,895 of 10,000 schools (39 %) are marked connected. The app labels it "estimate" everywhere. It must not be used for decisions about a specific school. Replace `data/connectivity.json` with real data when the Giga "School profile" API is available; the app does not need changes.
+- Speed data is still missing, so 3 must-have features from the Giga recon are blocked: speed colours, week navigator and speed chart (see `replica/01-recon/features.csv`).
 - Offline maps need OPFS with `createWritable` (Chrome, Edge, Android Chrome, Firefox). Safari shows "cannot store maps" and still works online.
 - The JS bundle is 906 KB raw / 255 KB gzip, mostly MapLibre. Performance on 3G is measured in phase 5.
 - Recon screenshots of Giga are kept locally in `replica/01-recon/screens/` and are gitignored (third-party content, reference only). Regenerate them by re-running the recon (phase 1A).
