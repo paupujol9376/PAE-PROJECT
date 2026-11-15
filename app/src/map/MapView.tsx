@@ -8,6 +8,11 @@ import { dataset, flyRequest, isMobile, lang, levelFilter, mapZoom, panelOpen, r
 import { navigate, route } from '../router';
 import { toGeoJSON } from '../data/schools';
 import { areaName, t, type Key } from '../i18n';
+import { attachWeather } from '../weather/mapLayers';
+import { activeIds, highRiskOnly, schoolRisk } from '../weather/store';
+import { isHigh } from '../weather/risk';
+import { render as renderPreact } from 'preact';
+import { PointWeather } from '../weather/ui/PointWeather';
 
 maplibregl.addProtocol('pmtiles', protocol.tile);
 
@@ -54,13 +59,18 @@ export function MapView(props: { mode?: 'full' | 'basic'; highlightSchool?: stri
     const setSchools = () => {
       const ds = dataset.value;
       const src = map.getSource('schools') as GeoJSONSource | undefined;
-      if (ds && src) src.setData(toGeoJSON(ds.schools));
+      if (!ds || !src) return;
+      const fc = toGeoJSON(ds.schools);
+      const risk = schoolRisk.peek();
+      if (risk.size) for (const f of fc.features) (f.properties as Record<string, unknown>).highRisk = isHigh(risk.get(f.properties!.id)?.max6 ?? 'low');
+      src.setData(fc);
     };
     const applyFilter = () => {
       const lv = [...levelFilter.value], st = basic ? [] : [...statusFilter.value];
       const parts: FilterSpecification[] = [];
       if (lv.length) parts.push(['in', ['get', 'level'], ['literal', lv]] as FilterSpecification);
       if (st.length) parts.push(['in', ['get', 'status'], ['literal', st]] as FilterSpecification);
+      if (!basic && highRiskOnly.value) parts.push(['==', ['get', 'highRisk'], true] as FilterSpecification);
       if (map.getLayer('schools')) map.setFilter('schools', parts.length ? (['all', ...parts] as FilterSpecification) : null);
     };
     const applySelection = () => {
@@ -113,7 +123,9 @@ export function MapView(props: { mode?: 'full' | 'basic'; highlightSchool?: stri
       set('roads-label', l); set('place-label', l);
     });
     const stopData = effect(() => { dataset.value; if (styleReady) setSchools(); });
-    const stopFilter = effect(() => { levelFilter.value; statusFilter.value; if (styleReady) applyFilter(); });
+    const stopFilter = effect(() => { levelFilter.value; statusFilter.value; highRiskOnly.value; if (styleReady) applyFilter(); });
+    const stopRisk = effect(() => { schoolRisk.value; if (styleReady) { setSchools(); applyFilter(); } });
+    cleanups.push(stopRisk, attachWeather(map));
     const stopSel = effect(() => { route.value; if (styleReady) applySelection(); });
     // keep the island visible next to the docked panel
     const stopPad = effect(() => {
@@ -149,6 +161,17 @@ export function MapView(props: { mode?: 'full' | 'basic'; highlightSchool?: stri
     cleanups.push(stopPopup, () => popup.remove());
 
     // --- interaction ---
+    // Tap anywhere (not on a school) with weather layers on: values of every active layer there.
+    const wxPopup = new maplibregl.Popup({ closeButton: true, offset: 8, maxWidth: '280px' });
+    map.on('click', (e) => {
+      if (!activeIds.peek().length) return;
+      if (map.queryRenderedFeatures(e.point, { layers: ['schools'] }).length) return;
+      const box = document.createElement('div');
+      box.className = 'pop';
+      renderPreact(<><strong>{t('wx.point')}</strong><PointWeather lat={e.lngLat.lat} lon={e.lngLat.lng} /></>, box);
+      wxPopup.setLngLat(e.lngLat).setDOMContent(box).addTo(map);
+    });
+    cleanups.push(() => wxPopup.remove());
     if (!basic) {
       map.on('click', 'schools', (e) => {
         const id = e.features?.[0]?.properties?.id as string | undefined;
@@ -164,6 +187,13 @@ export function MapView(props: { mode?: 'full' | 'basic'; highlightSchool?: stri
       });
       cleanups.push(stopCentre);
     }
+    // Cancelled tile requests (frame changes) are normal; provider failures degrade quietly
+    // (the weather panel shows "not available"), never as technical errors to the user.
+    map.on('error', (e) => {
+      const err = (e as { error?: Error }).error;
+      if (err?.name === 'AbortError') return;
+      console.warn('[PAE] map:', err?.message ?? e);
+    });
     map.on('zoomend', () => (mapZoom.value = map.getZoom()));
     map.on('load', () => (mapZoom.value = map.getZoom()));
     map.on('idle', () => document.body.setAttribute('data-map-idle', '1'));

@@ -35,6 +35,13 @@ export default defineConfig({
         navigateFallback: 'index.html',
         runtimeCaching: [
           {
+            // Weather satellite tiles (NASA GIBS): last viewed frames stay available offline for a while.
+            // Weather data is NOT part of the offline map package.
+            urlPattern: ({ url }) => url.hostname.endsWith('gibs.earthdata.nasa.gov') && url.pathname.includes('/wmts/'),
+            handler: 'StaleWhileRevalidate',
+            options: { cacheName: 'pae-weather-tiles', expiration: { maxEntries: 400, maxAgeSeconds: 12 * 3600 }, cacheableResponse: { statuses: [200] } },
+          },
+          {
             urlPattern: ({ url }) => /\/data\/[^/]+\.json$/.test(url.pathname),
             handler: 'NetworkFirst',
             options: { cacheName: 'pae-data', networkTimeoutSeconds: 6, expiration: { maxEntries: 10 } },

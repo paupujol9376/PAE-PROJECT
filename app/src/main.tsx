@@ -10,6 +10,7 @@ import '@fontsource/nunito/latin-700.css';
 import '@fontsource/nunito/latin-800.css';
 import './styles/app.css';
 import './styles/roles.css';
+import './styles/weather.css';
 import { App } from './app';
 import { dataError, dataset, flyTo, roadStats } from './state';
 import { route } from './router';

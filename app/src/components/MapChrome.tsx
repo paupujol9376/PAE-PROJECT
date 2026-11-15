@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'preact/hooks';
-import { Accessibility, Layers, List, Minus, Plus } from 'lucide-preact';
+import { Accessibility, CloudSun, Layers, List, Minus, Plus } from 'lucide-preact';
+import { wxPanelOpen } from '../weather/store';
 import type { Map as MLMap } from 'maplibre-gl';
 import { a11y, dialog, legendOpen, mapZoom, roadHighlight, roadStats, statusFilter, theme } from '../state';
 import { ROAD_CLASSES } from '../map/style';
@@ -14,6 +15,7 @@ export function MapControls(props: { basic?: boolean }) {
       <button class="icon-btn" aria-label={t('controls.zoomIn')} title={t('controls.zoomIn')} onClick={() => map()?.zoomIn()}><Plus size={20} /></button>
       <button class="icon-btn" aria-label={t('controls.zoomOut')} title={t('controls.zoomOut')} onClick={() => map()?.zoomOut()}><Minus size={20} /></button>
       <button class="icon-btn" aria-label={t('a11y.title')} title={t('a11y.title')} aria-pressed={a11y.value} onClick={() => (dialog.value = 'a11y')}><Accessibility size={20} /></button>
+      <button class="icon-btn" aria-label={t('wx.open')} title={t('wx.open')} aria-pressed={wxPanelOpen.value} onClick={() => (wxPanelOpen.value = !wxPanelOpen.value)}><CloudSun size={20} /></button>
       {!props.basic && <button class="icon-btn" aria-label={t('layers.title')} title={t('layers.title')} onClick={() => (dialog.value = 'layers')}><Layers size={20} /></button>}
       <button class="icon-btn" aria-label={t(legendOpen.value ? 'controls.legendHide' : 'controls.legendShow')} title={t('legend.title')} aria-pressed={legendOpen.value}
         onClick={() => (legendOpen.value = !legendOpen.value)}><List size={20} /></button>
@@ -126,7 +128,7 @@ export function LegendBody(props: { mode?: 'full' | 'basic' }) {
 }
 
 export function Legend(props: { mode?: 'full' | 'basic' }) {
-  if (!legendOpen.value) return null;
+  if (!legendOpen.value || wxPanelOpen.value) return null; // the weather panel uses the same corner
   return <section class="legend" aria-label={t('legend.title')}><LegendBody mode={props.mode} /></section>;
 }
 
