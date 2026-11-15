@@ -1,0 +1,88 @@
+# Planetiler custom schema: light basemap for Sri Lanka (inland water, rivers, places).
+#
+# Run through pipeline/build-base.ps1. Direct use:
+#   java -jar pipeline/bin/planetiler.jar generate-custom --schema=pipeline/base.yml \
+#        --osm_path=data/sri-lanka-latest.osm.pbf --output=data/base.pmtiles --force
+#
+# The land polygon (coastline) is NOT built here: Planetiler would need the global
+# water-polygons shapefile (~900 MB). pipeline/build_schools.py assembles the land
+# from OSM natural=coastline ways and writes data/land.json instead.
+
+schema_name: PAE Sri Lanka base
+schema_description: Inland water, rivers and places of Sri Lanka for the PAE map.
+attribution: <a href="https://www.openstreetmap.org/copyright" target="_blank">&copy; OpenStreetMap contributors</a>
+version: 1.0.0
+is_overlay: false
+
+args:
+  osm_path:
+    description: Path to the Sri Lanka .osm.pbf extract
+    default: data/sri-lanka-latest.osm.pbf
+  minzoom: 6
+  maxzoom: 14
+
+sources:
+  osm:
+    type: osm
+    local_path: '${ args.osm_path }'
+    url: https://download.geofabrik.de/asia/sri-lanka-latest.osm.pbf
+
+layers:
+  - id: water
+    features:
+      - source: osm
+        geometry: polygon
+        include_when:
+          natural: [water, bay]
+          landuse: [reservoir, basin]
+          waterway: riverbank
+        # Every water body from z6; Planetiler drops polygons smaller than min_size
+        # (pixels) per zoom, so small tanks only appear once they are visible.
+        min_zoom: 6
+        min_size: 2
+        attributes:
+          - key: kind
+            tag_value: natural
+
+  - id: waterway
+    features:
+      - source: osm
+        geometry: line
+        include_when:
+          waterway: [river, canal]
+        min_zoom:
+          default_value: 11
+          overrides:
+            8: { waterway: river }
+        attributes:
+          - key: kind
+            tag_value: waterway
+          - key: name
+            tag_value: name
+          - key: name:en
+            tag_value: name:en
+
+  - id: place
+    features:
+      - source: osm
+        geometry: point
+        include_when:
+          place: [city, town, village]
+        min_zoom:
+          default_value: 12
+          overrides:
+            6: { place: city }
+            9: { place: town }
+        attributes:
+          - key: kind
+            tag_value: place
+          - key: name
+            tag_value: name
+          - key: name:en
+            tag_value: name:en
+          - key: rank
+            type: integer
+            value:
+              1: { place: city }
+              2: { place: town }
+              3: otherwise

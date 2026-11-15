@@ -14,7 +14,7 @@ An offline-first mobile application that helps schools in Sri Lanka respond to e
 4. [Architecture decisions](#architecture-decisions)
 5. [Folder structure](#folder-structure)
 6. [Install and run](#install-and-run)
-7. [Regenerating roads.pmtiles](#regenerating-roadspmtiles)
+7. [Regenerating the data](#regenerating-the-data)
 8. [Status by phase](#status-by-phase)
 9. [Known issues](#known-issues)
 10. [Data sources and licences](#data-sources-and-licences)
@@ -92,8 +92,8 @@ The full rationale is written in `replica/02-architecture/` (phase 2).
 │   ├── 03-design/      # Tokens, component specs, map style
 │   ├── 04-build/
 │   └── 05-qa/          # Test plan, bugs, diff, evidence
-├── pipeline/           # Reproducible OSM → PMTiles scripts
-├── app/                # PWA source (MapLibre + PMTiles)
+├── pipeline/           # Reproducible data builds: roads/base PMTiles (Planetiler), schools + land + admin (Python)
+├── app/                # PWA: Vite + TypeScript + Preact + MapLibre + PMTiles (src/, public/glyphs, scripts/)
 └── data/               # (gitignored) .osm.pbf, .pmtiles: generate locally
 ```
 
@@ -107,7 +107,22 @@ cd PAE-PROJECT
 cp .env.example .env        # then paste your Giga API keys
 ```
 
-The app commands (`npm install`, `npm run dev`) will be added in phase 4.
+Run the app (after generating the data, see the next sections):
+
+```bash
+cd app
+npm install
+npm run data      # copy data/*.pmtiles + schools.json, land.json, admin.json into app/public/data
+npm run dev       # http://localhost:5173 (development)
+npm test          # unit tests (Vitest)
+npm run build     # type-check + production build in app/dist + check that no Giga key leaked
+npm run preview   # serve app/dist at http://localhost:4173 (service worker + offline work here)
+```
+
+The app is a static PWA: `app/dist` can be hosted on any static host with HTTP Range support
+(PMTiles needs it). Offline: open the menu, choose **Offline use** and **Download all** (about 46 MB);
+the maps are stored in the browser (OPFS) and the app shell and school data are cached by the
+service worker.
 
 **Design preview (phase 3):** after generating `data/roads.pmtiles` and a schools export, run:
 
@@ -119,7 +134,26 @@ node replica/03-design/serve.mjs 8080             # static server with HTTP Rang
 
 The preview reads `data/schools-preview.geojson` (build it with `python -I replica/03-design/make_preview_schools.py`).
 
-## Regenerating roads.pmtiles
+## Regenerating the data
+
+Everything the app reads is generated from two inputs and is **not** stored in git:
+the Geofabrik Sri Lanka extract (downloaded by the scripts) and the Giga **School location**
+export (CSV), which you download yourself from https://maps.giga.global/docs/explore-api
+(Giga account needed; filter Sri Lanka; save every page as `data/School_report_*.csv`).
+
+```powershell
+powershell -ExecutionPolicy Bypass -File pipeline/build-roads.ps1   # tools + PBF + data/roads.pmtiles (details below)
+powershell -ExecutionPolicy Bypass -File pipeline/build-base.ps1    # data/base.pmtiles: inland water, rivers, places (about 20 s)
+python -m pip install -r pipeline/requirements.txt
+python -I pipeline/build_schools.py --data-dir data                 # data/schools.json, land.json, admin.json (about 30 s)
+cd app; npm run data                                                # copy into the app
+```
+
+`build_schools.py` keeps only `LKA` rows, removes duplicate Giga IDs across pages, assigns each
+school to its province and district (OSM admin levels 4 and 5) and builds the land polygon
+from the OSM coastline (Planetiler would need the 900 MB global water polygons for that).
+
+### Regenerating roads.pmtiles
 
 Heavy data is **not** stored in the repo. `pipeline/` turns the Geofabrik Sri Lanka extract into
 `data/roads.pmtiles`: one line layer `roads` with every OSM `highway=*` way, z5 to z14.
@@ -159,7 +193,7 @@ The schema is `pipeline/roads.yml`; the last gate results are in
 | 1B: OSM → PMTiles roads pipeline | ✅ Done (gate passed, see `replica/01-data/`) |
 | 2: Architecture | ✅ Done (see `replica/02-architecture/architecture.md`) |
 | 3: Design system + map style | ✅ Done (tokens, 94/94 AA contrast, Strava-like road style; see `replica/03-design/`) |
-| 4: Build | ⏳ Pending |
+| 4: Build | ✅ Done (PWA in `app/`; 18/18 interaction checks, offline reload verified; see `replica/04-build/build-log.md`) |
 | 5: Test, diff, QA | ⏳ Pending |
 
 ## Known issues
@@ -169,7 +203,10 @@ The schema is `pipeline/roads.yml`; the last gate results are in
 - Giga connectivity status and speeds come from private APIs that this project has no access to. Schools are shown with status "unknown"; the UI is ready for a data provider.
 - Only page 1 of 2 of the Sri Lanka schools export is in `data/` (10,000 of ~10,100 schools). Download page 2 from the Giga portal into `data/`; the build merges every `School_report_*.csv`.
 - Sinhala/Tamil map labels: MapLibre cannot shape these scripts, so map labels use English names. All other UI text is fully translated.
-- No basemap yet: until `base.pmtiles` (water, coastline, boundaries) is built in phase 4, the sea and the land have the same colour in the map.
+- Sinhala and Tamil UI texts are drafts written by the developer. They need review by native speakers before release.
+- Without connectivity data, 4 must-have features from the Giga recon are blocked: speed colours, week navigator, speed chart and legend status filters (see `replica/01-recon/features.csv`).
+- Offline maps need OPFS with `createWritable` (Chrome, Edge, Android Chrome, Firefox). Safari shows "cannot store maps" and still works online.
+- The JS bundle is 906 KB raw / 255 KB gzip, mostly MapLibre. Performance on 3G is measured in phase 5.
 - Recon screenshots of Giga are kept locally in `replica/01-recon/screens/` and are gitignored (third-party content, reference only). Regenerate them by re-running the recon (phase 1A).
 
 ## Data sources and licences

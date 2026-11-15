@@ -10,7 +10,12 @@
 *.mbtiles
 *.geojsonseq
 *.geojson.gz
-data/
+# root data dir (pipeline inputs/outputs) and the copy served by the app;
+# NOT any folder named data (app/src/data is source code)
+/data/
+app/public/data/
+# map label glyphs are small, OFL-licensed app assets: keep them
+!app/public/glyphs/**/*.pbf
 pipeline/bin/
 pipeline/cache/
 *.jar
