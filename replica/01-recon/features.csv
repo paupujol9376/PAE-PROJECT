@@ -1,0 +1,45 @@
+feature,area,priority,original,clone,notes
+Full-screen vector map with dark theme,map,must,yes,no,S01
+Sri Lanka school points coloured by connectivity status,map,must,yes,no,S09 legend
+School points coloured by download-speed bucket (20 Mbps benchmark),map,must,yes,no,S09 legend + S12
+Zoom in/out controls,map,must,yes,no,map controls
+Legend card with status and speed columns,map,must,yes,no,S01 S09
+Legend checkboxes with counts that filter the map,map,must,yes,no,S09
+Show/hide legend,map,should,yes,no,S06
+Search schools by name with admin area in results,search,must,yes,no,S08
+Clear search,search,must,yes,no,S08
+Country view with KPIs (total / connected / with speed data),country,must,yes,no,S09
+Average download speed metric with info tooltip,country,must,yes,no,S09
+Week navigator (previous / next / latest),country,must,yes,no,S09 S10
+Weekly / monthly toggle,country,should,yes,no,S09 S10
+Speed bar chart with benchmark line,country,must,yes,no,S09 S10
+Data source shown per view,country,must,yes,no,S09 S10
+School detail panel (name / coords / status / id / source),school,must,yes,no,S10
+Map pin + popup card when a school is selected,school,must,yes,no,S10
+Click school dot on map opens detail,school,must,yes,no,F03
+Breadcrumb navigation (home > country > school),navigation,should,yes,no,S09 S10
+Deep links that restore view (country / school / layer / language),navigation,must,yes,no,URL state
+Layer picker (status / speed / coverage / fibre distance),layers,should,yes,no,S12; only layers with data for LK
+Filters drawer (education level etc.) with Clear all / Apply,filters,should,yes,no,S11
+Facility-type chips (all / schools / health),filters,could,yes,no,health data absent for LK
+Theme dark / light,settings,should,yes,no,S03 S14
+Basemap choice (default / street),settings,could,yes,no,S03; satellite skipped
+Overlay switches (admin boundaries / labels),settings,should,yes,no,S03
+Accessibility mode (high contrast + colour-blind palette),settings,must,yes,no,S04
+Language selector,settings,must,yes,no,S02; EN/SI/TA in clone
+Share dialog with copy link,sharing,should,yes,no,S05
+Social share buttons,sharing,could,yes,no,S05
+About-our-data notice,info,should,yes,no,S13; own wording
+Global overview with world KPIs,global,could,yes,no,S01; PAE is Sri Lanka only
+Country list browser,global,could,yes,no,S07; only LK needed
+Health facilities layer and detail,health,could,yes,no,no LK data seen
+Mobile bottom-sheet panel with resize handle,mobile,must,yes,no,S15
+Collapsible desktop side panel,layout,should,yes,no,edge tab
+All Sri Lanka roads layer (Strava-like glow by class),pae-roads,must,no,no,PAE addition; data/roads.pmtiles
+Toggle road class groups,pae-roads,should,no,no,PAE addition
+Offline-first (app shell / roads / school snapshot cached; data age shown),pae-offline,must,no,no,PAE addition
+UI in English / Sinhala / Tamil,pae-i18n,must,no,no,PAE addition
+Satellite basemap,settings,skip,yes,skip,licensed imagery
+Giga / UNICEF / ITU logos and brand,brand,skip,yes,skip,owned by Giga; own brand in phase 3
+Realtime measurement network (Giga Meter / SNMP),data,skip,yes,skip,we consume the public API only
+Mapbox basemap styles,map,skip,yes,skip,licensed; own PMTiles + open basemap
