@@ -1,5 +1,5 @@
 import { computed, effect, signal } from '@preact/signals';
-import type { Dataset, LangCode, Level } from './data/types';
+import type { Connectivity, Dataset, LangCode, Level } from './data/types';
 
 // ---- preferences (per device; localStorage may be unavailable, so every access is guarded) ----
 const PREFS_KEY = 'pae.prefs.v1';
@@ -59,6 +59,8 @@ export const theme = computed<'dark' | 'light' | 'a11y'>(() =>
 export const dataset = signal<Dataset | null>(null);
 export const dataError = signal<string | null>(null);
 export const levelFilter = signal<Set<Level>>(new Set());
+/** Legend status filter (open = connected / closed = not connected); empty = all. */
+export const statusFilter = signal<Set<Connectivity>>(new Set());
 /** Legend selection: road classes to highlight on the map (null = none). */
 export const roadHighlight = signal<string[] | null>(null);
 export const mapZoom = signal(7);

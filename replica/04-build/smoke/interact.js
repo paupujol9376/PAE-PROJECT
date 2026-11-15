@@ -1,16 +1,20 @@
 const { chromium } = require('playwright');
+const SESSIONS = { authorities: { userId: 'u-auth-1', role: 'authorities', loginAt: '2026-11-15T00:00:00Z' }, adult: { userId: 'u-adult-1', role: 'adult', loginAt: '2026-11-15T00:00:00Z' }, kids: { userId: 'u-kid-1', role: 'kids', loginAt: '2026-11-15T00:00:00Z' } };
 const OUT = process.env.OUT_DIR;
 const results = []; const ok = (name, cond, extra = '') => results.push(`${cond ? 'PASS' : 'FAIL'}  ${name} ${extra}`);
 (async () => {
   const b = await chromium.launch({ channel: 'msedge' });
   const ctx = await b.newContext({ viewport: { width: 1440, height: 900 }, colorScheme: 'dark', serviceWorkers: 'block', permissions: ['clipboard-read', 'clipboard-write'] });
+  await ctx.addInitScript((v) => localStorage.setItem('pae.session.v1', JSON.stringify(v)), SESSIONS.authorities);
   const p = await ctx.newPage(); const errs = [];
   p.on('pageerror', e => errs.push(e.message)); p.on('console', m => { if (m.type() === 'error') errs.push(m.text().slice(0, 150)); });
   await p.goto('http://127.0.0.1:4173/'); await p.waitForSelector('[data-testid=ready]:has-text("data")', { state: 'attached' });
   await p.waitForSelector('body[data-map-idle="1"]');
   // keyboard: Tab to menu, then search
   await p.keyboard.press('Tab'); ok('first Tab focuses menu button', await p.evaluate(() => document.activeElement?.getAttribute('aria-label')) === 'Open menu');
-  await p.keyboard.press('Tab'); ok('second Tab focuses search', await p.evaluate(() => document.activeElement?.getAttribute('role')) === 'combobox');
+  await p.keyboard.press('Tab'); ok('Tab 2: send alert', await p.evaluate(() => document.activeElement?.getAttribute('aria-label')) === 'Send alert');
+  await p.keyboard.press('Tab'); ok('Tab 3: sign out', await p.evaluate(() => document.activeElement?.getAttribute('aria-label')) === 'Sign out');
+  await p.keyboard.press('Tab'); ok('Tab 4 focuses search', await p.evaluate(() => document.activeElement?.getAttribute('role')) === 'combobox');
   await p.keyboard.type('galle', { delay: 30 }); await p.waitForTimeout(400);
   await p.keyboard.press('ArrowDown'); await p.keyboard.press('Enter'); await p.waitForTimeout(600);
   ok('keyboard search → route', /\/(school|district)\//.test(new URL(p.url()).pathname), p.url());

@@ -5,6 +5,10 @@ import type { LangCode } from './data/types';
 // Routes (architecture §4). Sri Lanka is implicit; the language lives in ?lang= so shared
 // links open in the sender's language.
 export type Route =
+  | { name: 'login' }
+  | { name: 'kids' }
+  | { name: 'adult' }
+  | { name: 'alerts' }
   | { name: 'home' }
   | { name: 'school'; id: string }
   | { name: 'district'; id: number }
@@ -14,6 +18,8 @@ const BASE = import.meta.env.BASE_URL.replace(/\/$/, '');
 
 export function parse(pathname: string): Route {
   const p = pathname.startsWith(BASE) ? pathname.slice(BASE.length) : pathname;
+  const simple = /^\/(login|kids|adult|alerts)\/?$/.exec(p);
+  if (simple) return { name: simple[1] as 'login' | 'kids' | 'adult' | 'alerts' };
   const m = /^\/(school|district|province)\/([^/]+)\/?$/.exec(p);
   if (!m) return { name: 'home' };
   if (m[1] === 'school') return { name: 'school', id: decodeURIComponent(m[2]) };
@@ -22,7 +28,7 @@ export function parse(pathname: string): Route {
 }
 
 export function href(r: Route): string {
-  const path = r.name === 'home' ? '/' : `/${r.name}/${encodeURIComponent(String(r.id))}`;
+  const path = r.name === 'home' ? '/' : 'id' in r ? `/${r.name}/${encodeURIComponent(String(r.id))}` : `/${r.name}`;
   const q = lang.value !== 'en' ? `?lang=${lang.value}` : '';
   return `${BASE}${path}${q}`;
 }

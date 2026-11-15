@@ -2,7 +2,8 @@ import { useEffect, useState } from 'preact/hooks';
 import { Copy, Download, Trash2 } from 'lucide-preact';
 import { Dialog, Switch } from './ui';
 import { a11y, dialog, lang, showBoundaries, showLabels, showToast, themePref } from '../state';
-import { syncUrl } from '../router';
+import { navigate, syncUrl } from '../router';
+import { logout } from '../auth/session';
 import { fmtBytes, fmtDate, t } from '../i18n';
 import {
   cancelDownload, downloadAll, downloadError, manifest, offlineReady, opfsSupported, progress, removeOffline, storageEstimate, TILE_FILES, type TileName,
@@ -20,6 +21,8 @@ export function MenuDialog() {
       </label>
       <button class="btn" onClick={() => (dialog.value = 'offline')}><Download size={18} aria-hidden="true" />{t('menu.offline')}</button>
       <button class="btn" onClick={() => (dialog.value = 'about')}>{t('menu.about')}</button>
+      <button class="btn" onClick={() => { dialog.value = null; navigate({ name: 'alerts' }); }}>{t('alerts.open')}</button>
+      <button class="btn" onClick={() => { dialog.value = null; logout(); }}>{t('session.logout')}</button>
     </Dialog>
   );
 }
