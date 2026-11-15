@@ -144,7 +144,7 @@ The schema is `pipeline/roads.yml`; the last gate results are in
 | Phase | Status |
 |---|---|
 | 0: Setup (gitignore, README, plan) | ✅ Done |
-| 1A: Recon of Giga map | ⏳ Pending |
+| 1A: Recon of Giga map | ✅ Done (15 screens, 7 flows, 44 features; see `replica/01-recon/`) |
 | 1B: OSM → PMTiles roads pipeline | ✅ Done (gate passed, see `replica/01-data/`) |
 | 2: Architecture | ⏳ Pending |
 | 3: Design system + map style | ⏳ Pending |
@@ -156,6 +156,7 @@ The schema is `pipeline/roads.yml`; the last gate results are in
 - Roads tiles: 6 of 340,300 source highway ways (0.0018 %) are not in the z14 tiles. Each is a two-node way under ~0.6 m long that collapses to a single point at the z14 tile grid (4096 units, ~0.6 m). Within the 1 % gate; not fixable in the schema.
 - Roads tiles: the largest tile is z12 over central Colombo (148 KB gzipped, 286 KB raw), because every residential and service road starts at z12. Fine for MapLibre, but watch it on 2G/3G.
 - The Giga API contract and rate limits have not been verified yet (phase 2).
+- Recon screenshots of Giga are kept locally in `replica/01-recon/screens/` and are gitignored (third-party content, reference only). Regenerate them by re-running the recon (phase 1A).
 
 ## Data sources and licences
 

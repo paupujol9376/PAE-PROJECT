@@ -46,3 +46,6 @@ desktop.ini
 # --- Python ---
 __pycache__/
 *.pyc
+
+# --- Reference screenshots of third-party apps (recon only, never shipped) ---
+replica/01-recon/screens/
