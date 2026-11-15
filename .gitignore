@@ -1,0 +1,44 @@
+# --- Secrets ---
+.env
+.env.*
+!.env.example
+
+# --- Heavy / generated geodata (regenerate with pipeline/, see README) ---
+*.pbf
+*.osm.pbf
+*.pmtiles
+*.mbtiles
+*.geojsonseq
+*.geojson.gz
+data/
+pipeline/bin/
+pipeline/cache/
+*.jar
+
+# --- Node / build ---
+node_modules/
+dist/
+dev-dist/
+.vite/
+coverage/
+playwright-report/
+test-results/
+*.log
+
+# --- Temporary screenshots / captures ---
+tmp/
+screenshots-tmp/
+*.tmp.png
+replica/**/_tmp/
+
+# --- OS / editor ---
+.DS_Store
+Thumbs.db
+desktop.ini
+.vscode/*
+!.vscode/extensions.json
+.idea/
+
+# --- Claude Code local state ---
+.claude/settings.local.json
+.claude/worktrees/
