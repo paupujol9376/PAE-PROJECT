@@ -1,10 +1,10 @@
-import { useMemo, useState } from 'preact/hooks';
+import { useEffect, useMemo, useState } from 'preact/hooks';
 import { Send } from 'lucide-preact';
 import { alertService, ALERT_TYPES, type Alert, type AlertType, type Recipients } from '../alerts';
-import { history, refreshAlerts } from '../alerts/store';
+import { alertDraft, history, refreshAlerts } from '../alerts/store';
 import { currentUser } from '../auth/session';
 import type { Role } from '../auth/types';
-import { dataset, showToast } from '../state';
+import { dataset, lang as uiLang, showToast } from '../state';
 import { buildIndex } from '../data/search';
 import type { LangCode } from '../data/types';
 import { fmtDate, t, type Key } from '../i18n';
@@ -53,12 +53,14 @@ export function AlertHistory() {
 export function SendAlertPanel() {
   const user = currentUser.value!;
   const ds = dataset.value;
-  const [type, setType] = useState<AlertType>('flood');
-  const [text, setText] = useState('');
-  const [lang, setLang] = useState<LangCode>('si');
-  const [kind, setKind] = useState<Recipients['kind']>('all');
-  const [districts, setDistricts] = useState<string[]>([]);
-  const [schools, setSchools] = useState<string[]>([]);
+  const draft = alertDraft.peek();
+  const [type, setType] = useState<AlertType>(draft?.type ?? 'flood');
+  const [text, setText] = useState(draft?.text ?? '');
+  const [lang, setLang] = useState<LangCode>(draft ? uiLang.peek() : 'si');
+  const [kind, setKind] = useState<Recipients['kind']>(draft?.recipients.kind ?? 'all');
+  const [districts, setDistricts] = useState<string[]>(draft?.recipients.kind === 'district' ? draft.recipients.districts : []);
+  const [schools, setSchools] = useState<string[]>(draft?.recipients.kind === 'school' ? draft.recipients.schools : []);
+  useEffect(() => { alertDraft.value = null; }, []); // consumed once
   const [roles, setRoles] = useState<Role[]>(['kids', 'adult']);
   const [q, setQ] = useState('');
   const [error, setError] = useState<string | null>(null);

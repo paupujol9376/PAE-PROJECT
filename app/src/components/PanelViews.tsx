@@ -6,6 +6,7 @@ import { areaName, fmtDate, fmtNumber, t, type Key } from '../i18n';
 import type { AdminArea, Dataset, Level, School } from '../data/types';
 import { StatusDot } from './ui';
 import { AlertsPanel } from './Alerts';
+import { SchoolWeather } from '../weather/ui/PointWeather';
 
 const LEVELS: Level[] = ['primary', 'secondary', 'primary_secondary'];
 
@@ -222,6 +223,7 @@ export function SchoolView(props: { id: string }) {
           <dt>{t('school.source')}</dt><dd>{t('school.sourceValue')}</dd>
         </dl>
       </section>
+      <SchoolWeather id={s.id} lat={s.lat} lon={s.lon} />
       <section class="card" aria-labelledby="speed-s">
         <h3 id="speed-s">{t('speed.title')}</h3>
         <div class="metric">{t('speed.noData')}</div>

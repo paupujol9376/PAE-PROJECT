@@ -17,6 +17,9 @@ import { LoginView, LangSelect } from './views/LoginView';
 import { KidsView } from './views/KidsView';
 import { inbox, startAlerts, stopAlerts } from './alerts/store';
 import { StatusDot } from './components/ui';
+import { WeatherPanel } from './weather/ui/WeatherPanel';
+import { TimePlayer } from './weather/ui/TimePlayer';
+import { startWeather, stopWeather } from './weather/store';
 
 function Brand() {
   return <span class="brand">PAE <b>Map</b></span>;
@@ -101,6 +104,7 @@ function Toast() {
 function AuthoritiesView() {
   const u = currentUser.value!;
   useEffect(() => { startAlerts(u); return stopAlerts; }, [u.id]);
+  useEffect(() => { startWeather(); return stopWeather; }, []);
   const lite = slowNetwork.value && !forceMap.value;
   const showMap = !!tileKeys.value && !lite;
   const alertsBtn = <button class="icon-btn" aria-label={t('alerts.open')} title={t('alerts.open')} aria-pressed={route.value.name === 'alerts'} onClick={() => navigate({ name: 'alerts' })}><BellRing size={20} /></button>;
@@ -116,6 +120,8 @@ function AuthoritiesView() {
       {showMap && <MapView />}
       {lite && <LiteMode />}
       {showMap && !isMobile.value && <Legend mode="full" />}
+      {showMap && <WeatherPanel />}
+      {showMap && <TimePlayer />}
       <NetworkBanner />
       <MenuDialog /><LayersDialog /><A11yDialog /><ShareDialog /><AboutDialog /><OfflineDialog />
     </>
@@ -126,6 +132,7 @@ function AuthoritiesView() {
 function AdultView() {
   const u = currentUser.value!;
   useEffect(() => { startAlerts(u); return stopAlerts; }, [u.id]);
+  useEffect(() => { startWeather(); return stopWeather; }, []);
   const s = u.schoolId ? dataset.value?.byId.get(u.schoolId) : undefined;
   const lite = slowNetwork.value && !forceMap.value;
   const showMap = !!tileKeys.value && !lite;
@@ -154,6 +161,8 @@ function AdultView() {
       {showMap && <MapView mode="basic" highlightSchool={u.schoolId} />}
       {lite && <LiteMode />}
       {showMap && !isMobile.value && <Legend mode="basic" />}
+      {showMap && <WeatherPanel readOnly />}
+      {showMap && <TimePlayer />}
       <NetworkBanner />
       <A11yDialog /><OfflineDialog />
     </>

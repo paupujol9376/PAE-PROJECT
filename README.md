@@ -15,10 +15,11 @@ An offline-first mobile application that helps schools in Sri Lanka respond to e
 5. [Folder structure](#folder-structure)
 6. [Install and run](#install-and-run)
 7. [Roles, sign-in and alerts](#roles-sign-in-and-alerts)
-8. [Regenerating the data](#regenerating-the-data)
-9. [Status by phase](#status-by-phase)
-10. [Known issues](#known-issues)
-11. [Data sources and licences](#data-sources-and-licences)
+8. [Weather layers](#weather-layers-authorities-and-adults)
+9. [Regenerating the data](#regenerating-the-data)
+10. [Status by phase](#status-by-phase)
+11. [Known issues](#known-issues)
+12. [Data sources and licences](#data-sources-and-licences)
 
 
 ---
@@ -190,6 +191,69 @@ recipients (all | districts | schools | roles), createdAt, author, status (sent 
 Secrets never go into the app: `VITE_*` values are public. `npm run build` fails if any Giga,
 Twilio or alerts-token variable name or value from `.env` appears in `app/dist`.
 
+## Weather layers (authorities and adults)
+
+> Informative only. **Official warnings always prevail.** Every layer shows its source and the time
+> of its data; nothing is invented. Weather data is **not** part of the offline map package.
+
+The **Weather** button (map controls) opens a panel of independent layers drawn above the base map
+and roads and **below the school dots**. Each layer has a switch, opacity, legend with units,
+coverage and data age. Desktop allows any number of layers; phones allow 2 at once. One shared
+**time player** drives every animated layer: play/pause, scrubber, 1x/2x, "Now", Sri Lanka time
+(Asia/Colombo) and a past / now / forecast label. Animation is disabled with `prefers-reduced-motion`
+and pauses while the tab is hidden; data refreshes per layer (10–60 min) only while the tab is visible.
+
+| # | Phenomenon | Provider (verified 2026-11-15) | Sri Lanka | Forecast | Resolution / cadence | Limits |
+|---|---|---|---|---|---|---|
+| 1a | Rain, observed | NASA GIBS `IMERG_Precipitation_Rate_30min` (GPM satellite estimate, **not radar**) | yes | no | ≈10 km, 30 min, **≈5 h behind** | free, no key |
+| 1b | Rain, forecast | Open-Meteo (model blend) | yes | 48 h | 0.5° grid (60 points), hourly | free **non-commercial**, < 10 000 calls/day, CC BY 4.0 |
+| 2 | Wind, direction, gusts | Open-Meteo | yes | 48 h | 0.5° grid, hourly (arrows) | as above |
+| 3 | Clouds IR / visible | NASA GIBS Himawari AHI band 13 / band 3 | yes | no | 2 km / 1 km, 10 min (visible: daylight) | free, no key |
+| 4 | Lightning | **disabled** | — | — | — | Blitzortung forbids use in warning systems; no free official source |
+| 5 | Temperature, feels-like | Open-Meteo | yes | 48 h | 0.5° grid, hourly | as Open-Meteo |
+| 6 | Tropical cyclones | GDACS (track, 60/90/120 km/h wind zones, cone; data from JTWC) | yes (N. Indian Ocean) | yes | per advisory | free, no key |
+| 7 | Waves at the coast | Open-Meteo Marine (16 coastal points) | yes | 48 h | hourly | as Open-Meteo |
+| 7b | Storm surge | **disabled** | — | — | — | no free reliable source |
+| 8 | Rain accumulated 24/48/72 h | Open-Meteo | yes | yes | 0.5° grid | as Open-Meteo. NBRO/DMC landslide and flood warnings have no API |
+| 9a | Official alerts | GDACS events for Sri Lanka (source + issue time) | yes | — | 15 min | free |
+| 9b | Dept. of Meteorology warnings | **disabled**, link to meteo.gov.lk | — | — | — | no machine-readable feed found |
+
+Required attributions are shown in the map footer: "Imagery: NASA GIBS / ESDIS", "Weather data by
+Open-Meteo.com (CC BY 4.0)", "Alerts: GDACS (UN OCHA, European Commission JRC)".
+RainViewer was evaluated and not used: since 2026-01-01 its free tier has no nowcast or satellite,
+and no free radar coverage for Sri Lanka was confirmed.
+
+**Quota.** Each grid point counts as one Open-Meteo call: one refresh = 60 + 16 calls, at most
+hourly per browser. For many users set `VITE_WEATHER_PROXY_URL` and run `server/` (`/api/weather/grid`,
+`/api/weather/marine`): the server downloads once per hour and serves everyone. No provider needs
+a key; if one ever does, it goes in the server's environment, never in the app (`npm run build`
+fails on leaked secrets).
+
+**Point values and school risk.** Tapping the map shows the values of all active layers at that
+point with a 3-hour trend; a school's page shows the same plus its **risk index**. The formula is
+visible and editable in the panel (Weather → School risk → Formula), saved per device:
+
+```
+factor  = clamp((value − low) / (high − low), 0, 1)     rain mm/h [5–30], gusts km/h [40–90], 24 h rain mm [50–200]
+official = 1 if a GDACS Orange/Red alert for Sri Lanka is active or the school is inside a cyclone polygon
+score   = Σ weight × factor / Σ weights                  weights 0.3 / 0.2 / 0.3 / 0.2
+level   = low < 0.25 ≤ moderate < 0.5 ≤ high < 0.75 ≤ severe
+```
+
+Authorities get counters of high-risk schools (now, next 6 h, next 24 h), a "only high-risk schools"
+map filter, optional in-app notices, and **Prepare alert**, which fills the alert form (type, text,
+affected schools or districts). **It never sends anything by itself: a person reviews and sends.**
+Adults see the layers read-only, without risk tools. Kids see no map but still receive the alerts.
+
+**Offline.** The last model grid, marine points, GDACS alerts and satellite time are kept in
+IndexedDB, and viewed satellite tiles in the service worker cache (12 h). Offline, layers show
+"Data from X min ago, offline"; with nothing cached the layer says "not available".
+
+**Add a phenomenon:** create `app/src/weather/providers/<name>.ts` that calls `registerLayer({...})`
+implementing `WeatherProvider` (`getFrames`, `getValueAt`, `getLegend`, `getAttribution`,
+`getCoverage`, `render`), add its title and texts to `app/src/i18n/{en,si,ta}.ts`. The panel, the player,
+the map and the point values pick it up automatically; no other file changes.
+
 ## Regenerating the data
 
 Everything the app reads is generated from two inputs and is **not** stored in git:
@@ -268,6 +332,7 @@ The schema is `pipeline/roads.yml`; the last gate results are in
 - The kids "my school" light shows the estimated connection status, not whether the school is really open. Do not rely on it in an emergency until real per-school data exists.
 - Risk zones (adult map) are prepared but empty: there is no official hazard dataset in the project yet. Nothing is invented.
 - Kids help screen shows 117 as the emergency number (Sri Lanka Disaster Management Centre hotline). Confirm it with the local authority before release.
+- Weather: the model grid is coarse (0.5°, ≈55 km), so it shows regional patterns, not street-level rain. Observed rain (IMERG) arrives ≈5 h late. Lightning, storm surge and Sri Lanka Department of Meteorology warnings have no reliable machine-readable free source and are disabled. Open-Meteo's free tier is non-commercial only.
 - Speed data is still missing, so 3 must-have features from the Giga recon are blocked: speed colours, week navigator and speed chart (see `replica/01-recon/features.csv`).
 - Offline maps need OPFS with `createWritable` (Chrome, Edge, Android Chrome, Firefox). Safari shows "cannot store maps" and still works online.
 - The JS bundle is 906 KB raw / 255 KB gzip, mostly MapLibre. Performance on 3G is measured in phase 5.
@@ -282,4 +347,7 @@ The schema is `pipeline/roads.yml`; the last gate results are in
 | MapLibre GL JS | Map rendering | BSD-3-Clause |
 | PMTiles | Tile archive format | BSD-3-Clause |
 | Planetiler | Tile generation | Apache-2.0 |
+| NASA GIBS (IMERG, Himawari) | Satellite rain and clouds | Free use with acknowledgement: "Imagery: NASA GIBS / ESDIS" |
+| Open-Meteo | Weather model grid, waves | CC BY 4.0, free tier non-commercial only |
+| GDACS | Cyclones and official alerts | Free, credit GDACS (UN OCHA, EC JRC) |
 

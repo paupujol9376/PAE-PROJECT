@@ -7,6 +7,8 @@ import type { User } from '../auth/types';
 export const history = signal<Alert[]>([]);
 export const inbox = signal<Alert[]>([]);
 export const arrived = signal<Alert | null>(null);
+/** Draft prepared from the weather risk panel. Only pre-fills the form: a person always sends it. */
+export const alertDraft = signal<{ type: Alert['type']; text: string; recipients: Alert['recipients'] } | null>(null);
 
 let unsubscribe: (() => void) | null = null;
 let unUpdate: (() => void) | null = null;

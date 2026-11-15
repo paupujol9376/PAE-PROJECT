@@ -37,11 +37,39 @@ app.use((req, res, next) => {
   res.set('Access-Control-Allow-Origin', ALLOWED_ORIGIN);
   res.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
   if (req.method === 'OPTIONS') return res.sendStatus(204);
-  const ok = !ALERTS_API_TOKEN || req.get('authorization') === `Bearer ${ALERTS_API_TOKEN}`;
+  const ok = req.path.startsWith('/api/weather/') || !ALERTS_API_TOKEN || req.get('authorization') === `Bearer ${ALERTS_API_TOKEN}`;
   return ok ? next() : res.status(401).json({ error: 'unauthorized' });
 });
 
 app.get('/api/alerts', (_req, res) => res.json([...alerts].reverse()));
+
+// ---- Weather proxy (optional): Open-Meteo has no key but a daily quota and is non-commercial only.
+// The server downloads the Sri Lanka grid once per hour and serves it to every app user.
+// Same 0.5° grid and variables as app/src/weather/grid.ts and openMeteo.ts.
+const LATS = [5.5, 6, 6.5, 7, 7.5, 8, 8.5, 9, 9.5, 10], LONS = [79.5, 80, 80.5, 81, 81.5, 82];
+const PTS = LATS.flatMap((la) => LONS.map((lo) => [la, lo]));
+const COAST = [[9.9, 79.9], [9.6, 80.6], [9.1, 81.1], [8.6, 81.4], [8.0, 81.8], [7.4, 82.0], [6.8, 81.95], [6.3, 81.5], [5.85, 81.0], [5.85, 80.5], [6.0, 80.05], [6.5, 79.8], [7.1, 79.75], [7.7, 79.7], [8.3, 79.65], [8.9, 79.75]];
+const wxCache = new Map();
+async function cached(key, url) {
+  const hit = wxCache.get(key);
+  if (hit && Date.now() - hit.at < 60 * 60_000) return hit.body;
+  const r = await fetch(url);
+  if (!r.ok) { if (hit) return hit.body; throw new Error(`upstream ${r.status}`); }
+  const body = await r.text();
+  wxCache.set(key, { at: Date.now(), body });
+  return body;
+}
+const q = (o) => new URLSearchParams(o).toString();
+app.get('/api/weather/grid', async (_req, res) => {
+  try {
+    res.type('json').send(await cached('grid', `https://api.open-meteo.com/v1/forecast?${q({ latitude: PTS.map((p) => p[0]).join(','), longitude: PTS.map((p) => p[1]).join(','), hourly: 'precipitation,temperature_2m,apparent_temperature,wind_speed_10m,wind_direction_10m,wind_gusts_10m', past_days: 3, forecast_days: 2, timezone: 'UTC', wind_speed_unit: 'kmh' })}`));
+  } catch (e) { res.status(502).json({ error: 'weather unavailable' }); }
+});
+app.get('/api/weather/marine', async (_req, res) => {
+  try {
+    res.type('json').send(await cached('marine', `https://marine-api.open-meteo.com/v1/marine?${q({ latitude: COAST.map((p) => p[0]).join(','), longitude: COAST.map((p) => p[1]).join(','), hourly: 'wave_height,wave_period', past_days: 1, forecast_days: 2, timezone: 'UTC' })}`));
+  } catch (e) { res.status(502).json({ error: 'weather unavailable' }); }
+});
 
 app.post('/api/alerts', async (req, res) => {
   const { type, text, lang, recipients, author } = req.body ?? {};
