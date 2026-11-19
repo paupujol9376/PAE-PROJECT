@@ -48,7 +48,7 @@ function LayerRow(props: { p: WeatherProvider }) {
         <Switch id={`wx-${p.id}`} label={t(p.titleKey)} checked={!!st?.on} onChange={onToggle} />
       )}
       {disabled && <p class="small muted">{t(p.disabledReasonKey!)}</p>}
-      {p.link && <a class="link small" href={p.link.url} target="_blank" rel="noopener">{t(p.link.labelKey)} <ExternalLink size={12} aria-hidden="true" /></a>}
+      {disabled && p.link && <a class="link small" href={p.link.url} target="_blank" rel="noopener">{t(p.link.labelKey)} <ExternalLink size={12} aria-hidden="true" /></a>}
       {!disabled && st?.on && (
         <div class="wx-detail">
           <p class={`small ${st.status === 'unavailable' ? 'warn' : 'muted'}`} aria-live="polite">{statusText}</p>
@@ -70,11 +70,15 @@ function LayerRow(props: { p: WeatherProvider }) {
             </label>
           ))}
           <LegendBar p={p} />
-          <p class="small muted">
-            {t('wx.coverage', { cov: t(`wx.${cov.sriLanka}` as Key), fc: t(cov.forecast ? 'wx.yes' : 'wx.no'), res: cov.resolution, upd: cov.update })}
-            {cov.latency ? ` · ${cov.latency}` : ''}
-          </p>
-          <p class="small muted">{t('wx.source')}: <a class="link" href={p.getAttribution().url} target="_blank" rel="noopener">{p.getAttribution().text}</a></p>
+          <details class="more">
+            <summary>{t('common.moreInfo')}</summary>
+            <p class="small muted">
+              {t('wx.coverage', { cov: t(`wx.${cov.sriLanka}` as Key), fc: t(cov.forecast ? 'wx.yes' : 'wx.no'), res: cov.resolution, upd: cov.update })}
+              {cov.latency ? ` · ${cov.latency}` : ''}
+            </p>
+            <p class="small muted">{t('wx.source')}: <a class="link" href={p.getAttribution().url} target="_blank" rel="noopener">{p.getAttribution().text}</a></p>
+            {p.link && <a class="link small" href={p.link.url} target="_blank" rel="noopener">{t(p.link.labelKey)} <ExternalLink size={12} aria-hidden="true" /></a>}
+          </details>
         </div>
       )}
     </li>
@@ -166,7 +170,7 @@ export function WeatherPanel(props: { readOnly?: boolean }) {
         <h2 id="wx-h">{t('wx.title')}</h2>
         <button class="icon-btn" aria-label={t('wx.close')} onClick={() => (wxPanelOpen.value = false)}><X size={20} /></button>
       </div>
-      <p class="notice">{t('wx.disclaimer')}</p>
+      <p class="small muted">{t('wx.disclaimer')}</p>
       {isMobile.value && <p class="small muted">{t('wx.limitMobile')} ({activeIds.value.length}/{MAX_MOBILE})</p>}
       <ul class="wx-list">{allLayers().map((p) => <LayerRow key={p.id} p={p} />)}</ul>
       {!props.readOnly && <RiskSection />}

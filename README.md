@@ -260,6 +260,10 @@ Everything the app reads is generated from two inputs and is **not** stored in g
 the Geofabrik Sri Lanka extract (downloaded by the scripts) and the Giga **School location**
 export (CSV), which you download yourself from https://maps.giga.global/docs/explore-api
 (Giga account needed; filter Sri Lanka; save every page as `data/School_report_*.csv`).
+The portal export stops at 10,000 rows per file; the full list (10,146 schools) is also available from
+`GET https://uni-ooi-giga-maps-service.azurewebsites.net/api/v1/schools_location/country/LKA?page=N&size=1000`
+(Bearer `GIGA_SCHOOL_LOCATION_API_KEY`; the country is the ISO3 code, not the numeric ID). Save it in the same
+CSV columns as `data/School_report_*.csv`; duplicate Giga IDs across files are dropped.
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File pipeline/build-roads.ps1   # tools + PBF + data/roads.pmtiles (details below)
@@ -323,10 +327,9 @@ The schema is `pipeline/roads.yml`; the last gate results are in
 - Roads tiles: 6 of 340,300 source highway ways (0.0018 %) are not in the z14 tiles. Each is a two-node way under ~0.6 m long that collapses to a single point at the z14 tile grid (4096 units, ~0.6 m). Within the 1 % gate; not fixable in the schema.
 - Roads tiles: the largest tile is z12 over central Colombo (148 KB gzipped, 286 KB raw), because every residential and service road starts at z12. Fine for MapLibre, but watch it on 2G/3G.
 - Giga connectivity status and speeds come from private APIs that this project has no access to. Schools are shown with status "unknown"; the UI is ready for a data provider.
-- Only page 1 of 2 of the Sri Lanka schools export is in `data/` (10,000 of ~10,100 schools). Download page 2 from the Giga portal into `data/`; the build merges every `School_report_*.csv`.
 - Sinhala/Tamil map labels: MapLibre cannot shape these scripts, so map labels use English names. All other UI text is fully translated.
 - Sinhala and Tamil UI texts are drafts written by the developer. They need review by native speakers before release.
-- **School connection status is an estimate, not measured data.** Real per-school status is only in Giga's private APIs. `pipeline/estimate_connectivity.py` applies the project owner's visual estimate of the share of connected schools per region (read from an image of the Giga map, ±10-15 points) to each district: 3,895 of 10,000 schools (39 %) are marked connected. The app labels it "estimate" everywhere. It must not be used for decisions about a specific school. Replace `data/connectivity.json` with real data when the Giga "School profile" API is available; the app does not need changes.
+- **School connection status is an estimate, not measured data.** Real per-school status is only in Giga's private APIs. `pipeline/estimate_connectivity.py` applies the project owner's visual estimate of the share of connected schools per region (read from an image of the Giga map, ±10-15 points) to each district: 3,947 of 10,146 schools (39 %) are marked connected. The app labels it "estimate" everywhere. It must not be used for decisions about a specific school. Replace `data/connectivity.json` with real data when the Giga "School profile" API is available; the app does not need changes.
 - Legend road names follow what OSM data shows for Sri Lanka (`pipeline/road_stats.py`): `trunk` ways carry A numbers (3,138 refs), `primary` ways carry B numbers (5,481), `motorway` ways carry E numbers (584); `secondary` is mixed (C 155, B 100) and only 17 % have a number, so it is not labelled with a class letter. Kilometres count each carriageway of dual roads separately.
 - Roles: sign-in is demo-only (see the warning above). There is one session per browser: tabs share it, so to try two roles at once keep both tabs open without reloading. Mock alerts reach only tabs of the same browser on the same device; real delivery needs SMS mode.
 - The kids "my school" light shows the estimated connection status, not whether the school is really open. Do not rely on it in an emergency until real per-school data exists.

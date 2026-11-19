@@ -7,7 +7,7 @@ import { SearchBox } from './components/SearchBox';
 import { Legend, MapControls } from './components/MapChrome';
 import { A11yDialog, AboutDialog, LayersDialog, MenuDialog, OfflineDialog, ShareDialog } from './components/Dialogs';
 import { AlertCard } from './components/Alerts';
-import { dataset, dialog, forceMap, isMobile, lang, online, panelOpen, sheetSnap, slowNetwork, theme, toast, type Snap } from './state';
+import { dataset, dialog, forceMap, isMobile, lang, levelFilter, online, panelOpen, sheetSnap, slowNetwork, statusFilter, theme, toast, type Snap } from './state';
 import { tileKeys } from './offline/offline';
 import { navigate, route } from './router';
 import { t } from './i18n';
@@ -19,7 +19,7 @@ import { inbox, startAlerts, stopAlerts } from './alerts/store';
 import { StatusDot } from './components/ui';
 import { WeatherPanel } from './weather/ui/WeatherPanel';
 import { TimePlayer } from './weather/ui/TimePlayer';
-import { startWeather, stopWeather } from './weather/store';
+import { highRiskOnly, startWeather, stopWeather } from './weather/store';
 
 function Brand() {
   return <span class="brand">PAE <b>Map</b></span>;
@@ -141,10 +141,10 @@ function AdultView() {
     <>
       <p class="small muted">{t('session.signedInAs', { name: u.name })} · {t('adult.readOnly')}</p>
       {s && (
-        <section class="card" aria-labelledby="my-school-h">
+        <section class="card my-school" aria-labelledby="my-school-h">
           <h3 id="my-school-h">{t('adult.mySchool')}</h3>
-          <p><b>{s.name}</b></p>
-          <p class="status"><StatusDot status={s.connectivity} />{t('school.status')}: {t(`status.${s.connectivity}`)}{dataset.value?.connectivity?.kind === 'estimate' && s.connectivity !== 'unknown' ? ` (${t('status.estimated')})` : ''}</p>
+          <p class="my-school-name">{s.name}</p>
+          <p class={`pill st-${s.connectivity}`}><StatusDot status={s.connectivity} />{t('school.status')}: {t(`status.${s.connectivity}`)}{dataset.value?.connectivity?.kind === 'estimate' && s.connectivity !== 'unknown' ? ` (${t('status.estimated')})` : ''}</p>
           {dataset.value?.connectivity?.kind === 'estimate' && <p class="notice">{t('notice.estimate')}</p>}
         </section>
       )}
@@ -177,6 +177,11 @@ export function App() {
     document.documentElement.lang = lang.value;
     document.title = t('app.title');
   }, [theme.value, lang.value, role]);
+  // School filters live in memory per tab: start every session with all schools visible,
+  // so a filter left on by a previous user never hides the map's schools.
+  useEffect(() => {
+    levelFilter.value = new Set(); statusFilter.value = new Set(); highRiskOnly.value = false;
+  }, [session.value?.userId]);
   // Route guard: no session -> login; a role on someone else's view -> its own view.
   useEffect(() => {
     const to = redirectFor(role, route.value);

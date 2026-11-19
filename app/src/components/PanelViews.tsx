@@ -60,26 +60,21 @@ function ConnectivityCard(props: { schools: School[] }) {
   const hasData = props.schools.some((s) => s.connectivity !== 'unknown');
   const estimate = dataset.value?.connectivity?.kind === 'estimate';
   return (
-    <>
-      <section class="card" aria-labelledby="kpi-h">
-        <h3 id="kpi-h">{t('kpi.title')}</h3>
-        <div class="kpis">
-          <div class="kpi"><b data-testid="kpi-total">{fmtNumber(props.schools.length)}</b><span>{t('kpi.onMap')}</span></div>
-          <div class="kpi"><b data-testid="kpi-connected">{hasData ? `${estimate ? '≈' : ''}${fmtNumber(connected)}` : '–'}</b><span>{t('kpi.connected')}{estimate ? ` (${t('status.estimated')})` : ''}</span></div>
-          <div class="kpi"><b>{withSpeed ? fmtNumber(withSpeed) : '–'}</b><span>{t('kpi.withSpeed')}</span></div>
-        </div>
-        {estimate && <p class="notice">{t('notice.estimate')}</p>}
-      </section>
-      <section class="card" aria-labelledby="speed-h">
-        <h3 id="speed-h">{t('speed.title')}</h3>
-        <div class="metric">{t('speed.noData')}</div>
-        {!hasData && <p class="notice">{t('notice.noConnectivity')}</p>}
-      </section>
-    </>
+    <section class="card" aria-labelledby="kpi-h">
+      <h3 id="kpi-h">{t('kpi.title')}</h3>
+      <div class="kpis">
+        <div class="kpi"><b data-testid="kpi-total">{fmtNumber(props.schools.length)}</b><span>{t('kpi.onMap')}</span></div>
+        <div class="kpi kpi-accent"><b data-testid="kpi-connected">{hasData ? `${estimate ? '≈' : ''}${fmtNumber(connected)}` : '–'}</b><span>{t('kpi.connected')}{estimate ? ` (${t('status.estimated')})` : ''}</span></div>
+        <div class="kpi"><b>{withSpeed ? fmtNumber(withSpeed) : '–'}</b><span>{t('kpi.withSpeed')}</span></div>
+      </div>
+      <p class="small muted">{t('speed.title')}: {t('speed.noData')}</p>
+      {estimate && <p class="notice">{t('notice.estimate')}</p>}
+      {!hasData && <p class="notice">{t('notice.noConnectivity')}</p>}
+    </section>
   );
 }
 
-function LevelFilter() {
+function LevelChips() {
   const sel = levelFilter.value;
   const toggle = (l: Level) => {
     const next = new Set(sel);
@@ -87,14 +82,24 @@ function LevelFilter() {
     levelFilter.value = next;
   };
   return (
-    <section class="card" aria-labelledby="lvl-h">
-      <h3 id="lvl-h">{t('filters.title')}</h3>
+    <>
       <div class="chips" role="group" aria-labelledby="lvl-h">
         {LEVELS.map((l) => (
           <button key={l} class="chip" aria-pressed={sel.has(l)} onClick={() => toggle(l)}>{t(`level.${l}` as Key)}</button>
         ))}
       </div>
       {sel.size > 0 && <button class="link small" onClick={() => (levelFilter.value = new Set())}>{t('filters.clear')}</button>}
+    </>
+  );
+}
+
+/** School-level chips, plus (overview only) the road groups folded into a disclosure. */
+function Filters(props: { roads?: boolean }) {
+  return (
+    <section class="card" aria-labelledby="lvl-h">
+      <h3 id="lvl-h">{t('filters.title')}</h3>
+      <LevelChips />
+      {props.roads && <RoadChips />}
     </section>
   );
 }
@@ -103,8 +108,8 @@ export function RoadChips() {
   const groups: [string, Key][] = [['major', 'roads.major'], ['local', 'roads.local'], ['rural', 'roads.rural'], ['active', 'roads.active'], ['other', 'roads.other']];
   const sel = roadGroups.value;
   return (
-    <section class="card" aria-labelledby="roads-h">
-      <h3 id="roads-h">{t('roads.title')}</h3>
+    <details class="more">
+      <summary id="roads-h">{t('roads.title')}</summary>
       <div class="chips" role="group" aria-labelledby="roads-h">
         {groups.map(([g, k]) => (
           <button key={g} class="chip" aria-pressed={sel.has(g)} onClick={() => {
@@ -114,7 +119,7 @@ export function RoadChips() {
           }}>{t(k)}</button>
         ))}
       </div>
-    </section>
+    </details>
   );
 }
 
@@ -152,11 +157,9 @@ export function Overview() {
     <>
       <h1 class="title">{t('overview.title')}</h1>
       <ConnectivityCard schools={schools} />
-      <LevelFilter />
-      <RoadChips />
+      <Filters roads />
       <AreaList title={t('provinces.title')} areas={ds.provinces} kind="province" counts={counts} />
-      <ShareRow />
-      <DataAge />
+      <PanelFooter />
     </>
   );
 }
@@ -180,7 +183,7 @@ export function AreaView(props: { kind: 'district' | 'province'; id: number }) {
       <h1 class="title">{areaName(area)}</h1>
       <p class="muted">{t(props.kind === 'district' ? 'kind.district' : 'kind.province')}</p>
       <ConnectivityCard schools={schools} />
-      <LevelFilter />
+      <Filters />
       {props.kind === 'province' && <AreaList title={t('districts.title')} areas={districts} kind="district" counts={districtCounts} />}
       {props.kind === 'district' && (
         <section class="card" aria-label={t('area.list')}>
@@ -197,8 +200,7 @@ export function AreaView(props: { kind: 'district' | 'province'; id: number }) {
           {sorted.length > limit && <button class="btn" onClick={() => setLimit(limit + 200)}>{t('area.showMore', { n: fmtNumber(Math.min(200, sorted.length - limit)) })}</button>}
         </section>
       )}
-      <ShareRow />
-      <DataAge />
+      <PanelFooter />
     </>
   );
 }
@@ -207,27 +209,32 @@ export function SchoolView(props: { id: string }) {
   const ds = dataset.value!;
   const s = ds.byId.get(props.id);
   if (!s) return <NotFound />;
+  const estimate = ds.connectivity?.kind === 'estimate';
   return (
     <>
-      <h1 class="title">{s.name}</h1>
-      <p class="status"><StatusDot status={s.connectivity} />{t('school.status')}: {t(`status.${s.connectivity}` as Key)}{ds.connectivity?.kind === 'estimate' && s.connectivity !== 'unknown' ? ` (${t('status.estimated')})` : ''}</p>
-      {ds.connectivity?.kind === 'estimate' && <p class="notice">{t('notice.estimate')}</p>}
+      <div class="school-head">
+        <h1 class="title">{s.name}</h1>
+        <p class={`pill st-${s.connectivity}`}><StatusDot status={s.connectivity} />{t('school.status')}: {t(`status.${s.connectivity}` as Key)}{estimate && s.connectivity !== 'unknown' ? ` (${t('status.estimated')})` : ''}</p>
+      </div>
+      {estimate && <p class="notice">{t('notice.estimate')}</p>}
       <section class="card" aria-labelledby="sd-h">
         <h3 id="sd-h">{t('school.details')}</h3>
         <dl class="dl">
           <dt>{t('school.level')}</dt><dd>{t(`level.${s.level}` as Key)}</dd>
           {s.district && <><dt>{t('school.district')}</dt><dd><Link to={{ name: 'district', id: s.district.id }}>{areaName(s.district)}</Link></dd></>}
           {s.province && <><dt>{t('school.province')}</dt><dd><Link to={{ name: 'province', id: s.province.id }}>{areaName(s.province)}</Link></dd></>}
-          <dt>{t('school.location')}</dt><dd>{s.lat.toFixed(5)}, {s.lon.toFixed(5)}</dd>
-          <dt>{t('school.gigaId')}</dt><dd class="small">{s.id}</dd>
-          <dt>{t('school.source')}</dt><dd>{t('school.sourceValue')}</dd>
+          <dt>{t('speed.title')}</dt><dd class="muted">{t('speed.noData')}</dd>
         </dl>
+        <details class="more">
+          <summary>{t('common.moreInfo')}</summary>
+          <dl class="dl small">
+            <dt>{t('school.location')}</dt><dd>{s.lat.toFixed(5)}, {s.lon.toFixed(5)}</dd>
+            <dt>{t('school.gigaId')}</dt><dd>{s.id}</dd>
+            <dt>{t('school.source')}</dt><dd>{t('school.sourceValue')}</dd>
+          </dl>
+        </details>
       </section>
       <SchoolWeather id={s.id} lat={s.lat} lon={s.lon} />
-      <section class="card" aria-labelledby="speed-s">
-        <h3 id="speed-s">{t('speed.title')}</h3>
-        <div class="metric">{t('speed.noData')}</div>
-      </section>
       <div class="btn-row">
         <button class="btn" onClick={() => flyTo({ center: [s.lon, s.lat], zoom: 15 })}><Crosshair size={18} aria-hidden="true" />{t('school.zoomTo')}</button>
         <button class="btn" onClick={() => (dialog.value = 'share')}><Share2 size={18} aria-hidden="true" />{t('share.button')}</button>
@@ -237,11 +244,12 @@ export function SchoolView(props: { id: string }) {
   );
 }
 
-function ShareRow() {
+function PanelFooter() {
   return (
-    <div class="btn-row">
-      <button class="btn" onClick={() => (dialog.value = 'share')}><Share2 size={18} aria-hidden="true" />{t('share.button')}</button>
-    </div>
+    <footer class="panel-foot">
+      <DataAge />
+      <button class="icon-btn" aria-label={t('share.button')} title={t('share.button')} onClick={() => (dialog.value = 'share')}><Share2 size={18} /></button>
+    </footer>
   );
 }
 

@@ -25,16 +25,17 @@ export function AlertCard(props: { alert: Alert; showStatus?: boolean }) {
   const a = props.alert;
   return (
     <article class={`alert-card type-${a.type}`} aria-labelledby={`al-${a.id}`}>
-      <div class="alert-icon"><AlertTypeIcon type={a.type} size={32} /></div>
+      <div class="alert-icon"><AlertTypeIcon type={a.type} size={24} /></div>
       <div class="alert-body">
-        <h4 id={`al-${a.id}`}>{t(`alertType.${a.type}` as Key)}</h4>
+        <div class="alert-top">
+          <h4 id={`al-${a.id}`}>{t(`alertType.${a.type}` as Key)}</h4>
+          {props.showStatus && <span class={`badge st-${a.status}`}>{t(`alertStatus.${a.status}` as Key)}</span>}
+        </div>
         <p class="alert-text" lang={a.lang}>{a.text}</p>
         <p class="small muted">
           {fmtDate(a.createdAt)} {new Date(a.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} · {t('alerts.by', { name: a.author.name })}
-          {' · '}{t('alerts.inLang', { lang: t(`lang.${a.lang}` as Key) })}
         </p>
-        <p class="small muted">{t('alerts.recipients', { to: recipientsText(a.recipients) })}</p>
-        {props.showStatus && <p class="small"><span class={`badge st-${a.status}`}>{t(`alertStatus.${a.status}` as Key)}</span></p>}
+        {props.showStatus && <p class="small muted">{t('alerts.recipients', { to: recipientsText(a.recipients) })} · {t('alerts.inLang', { lang: t(`lang.${a.lang}` as Key) })}</p>}
       </div>
     </article>
   );

@@ -12,13 +12,17 @@ const map = () => (window as unknown as { __map?: MLMap }).__map;
 export function MapControls(props: { basic?: boolean }) {
   return (
     <div class="controls" role="toolbar" aria-label="Map controls" aria-orientation="vertical">
-      <button class="icon-btn" aria-label={t('controls.zoomIn')} title={t('controls.zoomIn')} onClick={() => map()?.zoomIn()}><Plus size={20} /></button>
-      <button class="icon-btn" aria-label={t('controls.zoomOut')} title={t('controls.zoomOut')} onClick={() => map()?.zoomOut()}><Minus size={20} /></button>
-      <button class="icon-btn" aria-label={t('a11y.title')} title={t('a11y.title')} aria-pressed={a11y.value} onClick={() => (dialog.value = 'a11y')}><Accessibility size={20} /></button>
-      <button class="icon-btn" aria-label={t('wx.open')} title={t('wx.open')} aria-pressed={wxPanelOpen.value} onClick={() => (wxPanelOpen.value = !wxPanelOpen.value)}><CloudSun size={20} /></button>
-      {!props.basic && <button class="icon-btn" aria-label={t('layers.title')} title={t('layers.title')} onClick={() => (dialog.value = 'layers')}><Layers size={20} /></button>}
-      <button class="icon-btn" aria-label={t(legendOpen.value ? 'controls.legendHide' : 'controls.legendShow')} title={t('legend.title')} aria-pressed={legendOpen.value}
-        onClick={() => (legendOpen.value = !legendOpen.value)}><List size={20} /></button>
+      <div class="ctl-group">
+        <button class="icon-btn" aria-label={t('controls.zoomIn')} title={t('controls.zoomIn')} onClick={() => map()?.zoomIn()}><Plus size={20} /></button>
+        <button class="icon-btn" aria-label={t('controls.zoomOut')} title={t('controls.zoomOut')} onClick={() => map()?.zoomOut()}><Minus size={20} /></button>
+      </div>
+      <div class="ctl-group">
+        <button class="icon-btn" aria-label={t('wx.open')} title={t('wx.open')} aria-pressed={wxPanelOpen.value} onClick={() => (wxPanelOpen.value = !wxPanelOpen.value)}><CloudSun size={20} /></button>
+        <button class="icon-btn" aria-label={t(legendOpen.value ? 'controls.legendHide' : 'controls.legendShow')} title={t('legend.title')} aria-pressed={legendOpen.value}
+          onClick={() => (legendOpen.value = !legendOpen.value)}><List size={20} /></button>
+        {!props.basic && <button class="icon-btn" aria-label={t('layers.title')} title={t('layers.title')} onClick={() => (dialog.value = 'layers')}><Layers size={20} /></button>}
+        <button class="icon-btn" aria-label={t('a11y.title')} title={t('a11y.title')} aria-pressed={a11y.value} onClick={() => (dialog.value = 'a11y')}><Accessibility size={20} /></button>
+      </div>
     </div>
   );
 }
@@ -90,6 +94,7 @@ export function LegendBody(props: { mode?: 'full' | 'basic' }) {
       )) : (
         <>
           <p class="small muted legend-hint">{t('legend.statusHint')}</p>
+          {sf.size > 0 && <button class="link small" onClick={() => (statusFilter.value = new Set())}>{t('legend.showAll')}</button>}
           <ul class="road-rows">
             {statusRows.map((s) => (
               <li key={s}><button class="li road-row" aria-pressed={sf.has(s)} onClick={() => toggleStatus(s)}><StatusDot status={s} /><span class="road-name">{t(`status.${s}` as Key)}</span></button></li>
@@ -103,26 +108,30 @@ export function LegendBody(props: { mode?: 'full' | 'basic' }) {
           <div class="li"><span class="swatch risk" aria-hidden="true" /><span class="muted">{t('legend.riskNoData')}</span></div>
         </>
       )}
-      {props.mode === 'basic' ? null : <h4>{t('legend.roads')}</h4>}
-      {props.mode !== 'basic' && <p class="small muted legend-hint">{t('legend.hint')}</p>}
-      {props.mode !== 'basic' && <ul class="road-rows">
-        {ROAD_ROWS.map((r) => {
-          const sel = roadHighlight.value;
-          const on = !!sel && sel.join() === r.classes.join();
-          const s = sumStats(r.classes);
-          return (
-            <li key={r.swatch}>
-              <button class="li road-row" aria-pressed={on} onClick={() => (roadHighlight.value = on ? null : r.classes)}>
-                <span class="swatch" aria-hidden="true" style={{ background: `var(--road-${r.swatch})`, color: `var(--road-${r.swatch})` }} />
-                <span class="road-name">{t(r.key)}</span>
-                {s && <span class="road-km">{t('legend.km', { km: fmtNumber(Math.round(s.km)) })}</span>}
-              </button>
-              {on && <RoadDetail classes={r.classes} />}
-            </li>
-          );
-        })}
-      </ul>}
-      {props.mode !== 'basic' && roadHighlight.value && <button class="link small" onClick={() => (roadHighlight.value = null)}>{t('legend.clear')}</button>}
+      {props.mode !== 'basic' && (
+        <details class="more legend-roads" open={!!roadHighlight.value}>
+          <summary><h4>{t('legend.roads')}</h4></summary>
+          <p class="small muted legend-hint">{t('legend.hint')}</p>
+          <ul class="road-rows">
+            {ROAD_ROWS.map((r) => {
+              const sel = roadHighlight.value;
+              const on = !!sel && sel.join() === r.classes.join();
+              const s = sumStats(r.classes);
+              return (
+                <li key={r.swatch}>
+                  <button class="li road-row" aria-pressed={on} onClick={() => (roadHighlight.value = on ? null : r.classes)}>
+                    <span class="swatch" aria-hidden="true" style={{ background: `var(--road-${r.swatch})`, color: `var(--road-${r.swatch})` }} />
+                    <span class="road-name">{t(r.key)}</span>
+                    {s && <span class="road-km">{t('legend.km', { km: fmtNumber(Math.round(s.km)) })}</span>}
+                  </button>
+                  {on && <RoadDetail classes={r.classes} />}
+                </li>
+              );
+            })}
+          </ul>
+          {roadHighlight.value && <button class="link small" onClick={() => (roadHighlight.value = null)}>{t('legend.clear')}</button>}
+        </details>
+      )}
     </>
   );
 }
